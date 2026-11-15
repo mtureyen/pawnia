@@ -1,7 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import { useRepertoire } from './repertoire/progress'
 
-/** The kinds of training: the user's mistakes as puzzles, their openings, and openings to study. */
+/**
+ * The kinds of training: the user's mistakes as puzzles, their openings, openings to study, and
+ * reading and writing chess notation.
+ */
 export function TrainingTabs() {
   const due = (useRepertoire().data ?? []).filter((line) => line.due).length
   return (
@@ -22,6 +25,9 @@ export function TrainingTabs() {
             {due}
           </span>
         )}
+      </Link>
+      <Link to="/training/notation" search={{}} activeProps={{ 'aria-current': 'page' }}>
+        Notation
       </Link>
     </nav>
   )

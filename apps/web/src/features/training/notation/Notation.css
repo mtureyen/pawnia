@@ -1,0 +1,286 @@
+.notation-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+}
+
+.notation-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+/* Smaller than on the analysis board: the tabs and the title stand above it. */
+.notation-layout {
+  --board-size: min(calc(100vh - 13rem), calc(100vw - 24rem - 3rem), 640px);
+  padding: 0;
+}
+
+.notation-side {
+  margin: 0 0 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.notation-panel {
+  gap: 0.75rem;
+  overflow-y: auto;
+}
+
+.notation-settings {
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+}
+
+.notation-settings fieldset {
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.notation-settings legend {
+  min-width: 3.9rem;
+  margin-right: 0.2rem;
+}
+
+.panel .notation-settings button {
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: 0.85rem;
+}
+
+.panel .notation-settings button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.panel .notation-part-of-board button {
+  min-width: 1.65rem;
+  padding: 0.2rem 0;
+}
+
+.notation-part-note {
+  margin: 0;
+}
+
+.notation-question {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.training-text .notation-ask {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.notation-target {
+  font-size: 1.9rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.notation-choices {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.notation-choices-moves {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panel .notation-choices button {
+  position: relative;
+  padding: 0.6rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.panel .notation-choices button:disabled {
+  opacity: 1;
+  color: var(--text-muted);
+}
+
+.panel .notation-choices button.notation-choice-right {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.panel .notation-choices button.notation-choice-wrong {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: var(--on-accent);
+}
+
+/* The key that picks an answer, in its corner. */
+.notation-key {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+/* No keyboard on a phone. */
+@media (hover: none) {
+  .notation-key {
+    display: none;
+  }
+}
+
+.panel .notation-start {
+  padding: 0.5rem 1.2rem;
+  border-radius: 4px;
+}
+
+.notation-feedback {
+  min-height: 1.5rem;
+  margin: 0 0 0.6rem;
+}
+
+.notation-feedback-right,
+.notation-feedback-wrong {
+  padding: 0.5rem 0.7rem;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.notation-feedback-wrong {
+  border-left-color: var(--danger);
+}
+
+.training-text .notation-feedback p:last-child {
+  margin-bottom: 0;
+}
+
+.notation-result {
+  font-weight: 600;
+}
+
+.notation-score {
+  margin: 0;
+  font-weight: 600;
+}
+
+.notation-clock {
+  margin-right: 0.6rem;
+  font-family: var(--mono);
+  font-size: 1.2rem;
+}
+
+/* A button that reads as a link: "Whole board", "Forget these stats". */
+.notation-link,
+.panel .notation-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.panel .notation-link:hover:not(:disabled) {
+  background: none;
+}
+
+/* The weak squares: a small board per side, red by how weak a square is. */
+.notation-heatmaps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.notation-heatmap {
+  margin: 0;
+  max-width: 16rem;
+}
+
+.notation-heatmap figcaption {
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+}
+
+.notation-heatmap-board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  width: min(16rem, calc(100vw - 4.5rem));
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+}
+
+.notation-heat-cell {
+  --heat: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 1px 2px;
+  background: color-mix(in srgb, var(--danger) calc(var(--heat) * 100%), var(--surface-2));
+  color: color-mix(in srgb, var(--text) 60%, transparent);
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+.notation-heat-cell.light {
+  background: color-mix(in srgb, var(--danger) calc(var(--heat) * 100%), var(--surface));
+}
+
+.notation-weakest {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+}
+
+.notation-guide dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+}
+
+.notation-guide dt {
+  font-weight: 600;
+}
+
+.notation-guide dd {
+  margin: 0;
+}
+
+/* Notation in the sans font: in a monospace one the O of O-O looks like a zero. */
+.notation-guide b {
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .notation-layout {
+    --board-size: min(calc(100vw - 2rem), 640px);
+  }
+}
+
+@media (max-width: 760px) {
+  .notation-guide dl {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .notation-guide dd {
+    margin-bottom: 0.5rem;
+  }
+}
+
+.notation-page a {
+  color: var(--accent);
+}
