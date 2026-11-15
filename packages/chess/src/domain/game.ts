@@ -85,7 +85,7 @@ export function createGame(fen: string = INITIAL_FEN): GameState {
   return new ChessopsGame(positionFromFen(fen))
 }
 
-function positionFromFen(fen: string): Chess {
+export function positionFromFen(fen: string): Chess {
   const setup = parseFen(fen.trim())
   if (setup.isErr) throw new InvalidPositionError(`Invalid FEN (${setup.error.message})`)
   const pos = Chess.fromSetup(setup.value)
