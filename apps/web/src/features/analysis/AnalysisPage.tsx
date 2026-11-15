@@ -5,6 +5,7 @@ import {
   importPgn,
   type Color,
   type GameState,
+  type Move,
   type MoveNode,
   type PgnHeaders,
 } from '@pawnia/chess'
@@ -28,6 +29,8 @@ import { EvalGraph } from '@/features/review/EvalGraph'
 import { mainline, reviewedNodes } from '@/features/review/mapping'
 import { ReviewPanel } from '@/features/review/ReviewPanel'
 import type { BoardTry } from '@/features/review/walkthrough'
+import { useVoice } from '@/features/voice/useVoice'
+import { VoicePanel } from '@/features/voice/VoicePanel'
 import { useAutoReview } from '@/features/review/useAutoReview'
 import { useGameReview } from '@/features/review/useGameReview'
 import { Board, type BoardArrow } from '@/shared/board/Board'
@@ -142,6 +145,14 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
     step,
     useMemo(() => ({ f: flip, l: () => setEngineEnabled((on) => !on) }), [flip]),
   )
+  const playOnBoard = (move: Move) => (trying ? trying.onMove(move) : update((g) => g.play(move)))
+  const voice = useVoice({
+    fen: tried?.fen ?? view.fen,
+    noMove: tried || view.dests.size === 0 ? 'No move can be played here now.' : undefined,
+    onMove: playOnBoard,
+    // Taking a move back on the analysis board steps back; the move stays in the tree.
+    commands: { flip, takeBack: view.atStart || tried ? undefined : () => update((g) => g.back()) },
+  })
 
   return (
     <div className="layout layout-analysis has-players">
@@ -163,8 +174,8 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
           lastMove={tried?.lastMove ?? view.lastMove}
           check={tried ? false : view.check}
           // The coach's drawing replaces the engine's arrows while the board is on its position.
-          arrows={shownDrawing ? [] : arrows}
-          drawing={tried ? undefined : shownDrawing}
+          arrows={shownDrawing || voice.drawing ? [] : arrows}
+          drawing={tried ? undefined : (voice.drawing ?? shownDrawing)}
           badge={
             currentReview && view.lastMove
               ? {
@@ -174,7 +185,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
               : undefined
           }
           isPromotion={(from, to) => game.isPromotion(from, to)}
-          onMove={(move) => (trying ? trying.onMove(move) : update((g) => g.play(move)))}
+          onMove={playOnBoard}
         />
         <PlayerBar {...players[orientation]} />
       </section>
@@ -283,6 +294,8 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
             />
           </div>
         </div>
+
+        <VoicePanel voice={voice} />
 
         <div className="controls">
           <NavigationControls view={view} update={step} />

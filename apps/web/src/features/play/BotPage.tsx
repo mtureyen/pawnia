@@ -25,6 +25,8 @@ import { useCoachChat } from '@/features/coach/useCoachChat'
 import { useCoachDrawing } from '@/features/coach/useCoachDrawing'
 import { usePlayer, useProfile } from '@/features/profile/useProfile'
 import { ClassBadge } from '@/features/review/ClassBadge'
+import { useVoice } from '@/features/voice/useVoice'
+import { VoicePanel } from '@/features/voice/VoicePanel'
 import { Board } from '@/shared/board/Board'
 import { TakenPieces } from '@/shared/board/TakenPieces'
 import { GameStatusBar } from '@/shared/game/GameStatusBar'
@@ -340,6 +342,23 @@ function BotGame({
   )
 
   const myTurn = !bot.over && view.atEnd && view.turn === setup.color
+  const voice = useVoice({
+    fen: view.fen,
+    noMove: myTurn
+      ? undefined
+      : bot.over
+        ? 'The game is over.'
+        : !view.atEnd
+          ? 'Go to the last move to play on.'
+          : 'It’s not your turn.',
+    onMove: bot.move,
+    commands: {
+      flip,
+      takeBack: !bot.clock && bot.canTakeback ? bot.takeback : undefined,
+      resign: bot.over ? undefined : bot.resign,
+      draw: !bot.over && !bot.drawDeclined && view.line.length >= 2 ? bot.offerDraw : undefined,
+    },
+  })
   const material = useMaterial(view.current)
   const savedId = bot.save.status === 'saved' ? bot.save.game.id : undefined
 
@@ -355,7 +374,7 @@ function BotGame({
           check={view.check}
           isPromotion={(from, to) => game.isPromotion(from, to)}
           onMove={bot.move}
-          drawing={shownDrawing}
+          drawing={voice.drawing ?? shownDrawing}
         />
       </section>
 
@@ -488,6 +507,8 @@ function BotGame({
           </div>
           <TakenPieces material={material} color={setup.color} />
         </div>
+
+        <VoicePanel voice={voice} />
 
         <div className="controls">
           <NavigationControls view={view} update={update} />
