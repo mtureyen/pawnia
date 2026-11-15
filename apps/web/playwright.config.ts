@@ -38,8 +38,13 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      // Locally reuse the installed Chrome; CI installs Playwright's Chromium.
-      use: { ...devices['Desktop Chrome'], ...(CI ? {} : { channel: 'chrome' }) },
+      // Locally reuse the installed Chrome; CI installs Playwright's Chromium. Its fake
+      // microphone plays a tone, for the voice input tests.
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(CI ? {} : { channel: 'chrome' }),
+        launchOptions: { args: ['--use-fake-device-for-media-stream'] },
+      },
     },
   ],
   webServer: [
@@ -66,7 +71,8 @@ export default defineConfig({
     },
     {
       command: `bun run dev --port ${WEB_PORT}`,
-      env: { API_URL: `http://localhost:${API_PORT}` },
+      // Voice input hears what the tests script instead of running Whisper: nothing to download.
+      env: { API_URL: `http://localhost:${API_PORT}`, VITE_PAWNIA_VOICE: 'scripted' },
       url: `http://localhost:${WEB_PORT}`,
       reuseExistingServer: !CI,
     },
