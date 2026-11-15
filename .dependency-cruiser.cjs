@@ -93,9 +93,11 @@ module.exports = {
     {
       name: 'not-to-unresolvable',
       severity: 'error',
-      comment: 'Every import must resolve (catches typos and missing dependencies).',
+      comment:
+        'Every import must resolve (catches typos and missing dependencies). Vite asset URLs ' +
+        '(`file?url`) are resolved by Vite, which fails the build on a wrong one.',
       from: {},
-      to: { couldNotResolve: true },
+      to: { couldNotResolve: true, pathNot: '\\?url$' },
     },
     {
       name: 'no-undeclared-dependencies',
