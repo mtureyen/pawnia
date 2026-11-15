@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { recordSpeech } from './speech'
 
 // Voice input with the scripted engine of the E2E build (VITE_PAWNIA_VOICE=scripted): no model is
 // downloaded; `window.pawniaVoiceScript` says what was "heard". The microphone is Chrome's fake
@@ -46,6 +47,16 @@ async function say(page: Page, text: string) {
   )
   await page.waitForTimeout(700)
   await page.keyboard.up(' ')
+}
+
+/** Voice settings as Settings → Voice leaves them, with speaking moves on and agreed to. */
+async function storeVoiceSettings(page: Page, settings: Record<string, unknown>) {
+  await page.addInitScript(
+    (value) => {
+      localStorage.setItem('pawnia.voice', JSON.stringify(value))
+    },
+    { speakMoves: true, speechModelAccepted: true, ...settings },
+  )
 }
 
 async function startBotGame(page: Page) {
@@ -166,52 +177,15 @@ test.describe('with the microphone allowed', () => {
   })
 
   test('always listening rests while the board reads a move aloud', async ({ page }) => {
-    // Speech synthesis that says nothing and ends only when the test says so; voice settings as
-    // Settings → Voice leaves them: moves read aloud on one screen, the microphone always on.
-    await page.addInitScript(() => {
-      const playing = new Set<EventTarget>()
-      class Utterance extends EventTarget {
-        text: string
-        voice = null
-        lang = ''
-        rate = 1
-        constructor(text: string) {
-          super()
-          this.text = text
-        }
-      }
-      const voices = [{ voiceURI: 'test', name: 'Test', lang: 'en-US', default: true }]
-      const synth = Object.assign(new EventTarget(), {
-        getVoices: () => voices,
-        speak: (u: Utterance) => void playing.add(u),
-        cancel: () => playing.clear(),
-      })
-      Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true })
-      Object.defineProperty(window, 'SpeechSynthesisUtterance', {
-        value: Utterance,
-        configurable: true,
-      })
-      Object.assign(window, {
-        endSpeech: () => {
-          for (const u of playing) u.dispatchEvent(new Event('end'))
-          playing.clear()
-        },
-      })
-      localStorage.setItem(
-        'pawnia.voice',
-        JSON.stringify({
-          localGames: true,
-          speakMoves: true,
-          speechModelAccepted: true,
-          listening: 'always',
-        }),
-      )
-    })
+    const speech = await recordSpeech(page, { holdUntilEnded: true })
+    // As Settings → Voice leaves them: moves read aloud on one screen, always listening.
+    await storeVoiceSettings(page, { localGames: true, listening: 'always' })
     await page.goto('/')
     await expect(state(page)).toHaveText('Listening')
 
     await page.evaluate(() => window.pawniaVoiceScript!.utter('e4'))
     await expect(moves(page).first()).toHaveAttribute('data-san', 'e4')
+    expect(await speech.texts()).toEqual(['e4'])
     // The board says "e4": the listener rests and hears nothing meanwhile.
     await expect(state(page)).toHaveText('Paused')
     const before = await page.evaluate(() => window.pawniaVoiceScript!.transcriptions)
@@ -221,9 +195,25 @@ test.describe('with the microphone allowed', () => {
     expect(await page.evaluate(() => window.pawniaVoiceScript!.transcriptions)).toBe(before)
 
     // A moment after the board is done, it listens again.
-    await page.evaluate(() => (window as unknown as { endSpeech(): void }).endSpeech())
+    await speech.end()
     await expect(state(page)).toHaveText('Listening')
     await page.evaluate(() => window.pawniaVoiceScript!.utter('e5'))
+    await expect(moves(page).nth(1)).toHaveAttribute('data-san', 'e5')
+  })
+
+  test('push to talk while the board speaks stops it and records', async ({ page }) => {
+    const speech = await recordSpeech(page, { holdUntilEnded: true })
+    await storeVoiceSettings(page, { localGames: true })
+    await page.goto('/')
+    await expect(state(page)).toHaveText('Hold Space and say a move')
+    await say(page, 'e4')
+    await expect(moves(page).first()).toHaveAttribute('data-san', 'e4')
+    expect(await speech.texts()).toEqual(['e4'])
+
+    // The board is still saying "e4" when the user presses to talk.
+    const cancels = await speech.cancels()
+    await say(page, 'e5')
+    expect(await speech.cancels()).toBeGreaterThan(cancels)
     await expect(moves(page).nth(1)).toHaveAttribute('data-san', 'e5')
   })
 

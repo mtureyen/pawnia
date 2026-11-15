@@ -1,63 +1,9 @@
 import { sayMove } from '@pawnia/chess'
 import { expect, test, type Page } from '@playwright/test'
 import { boardDriver } from './board'
+import { recordSpeech } from './speech'
 
 test.use({ viewport: { width: 1280, height: 1000 } })
-
-interface Said {
-  text: string
-  rate: number
-  voice: string | undefined
-}
-
-/**
- * The browser's speech synthesis, replaced by one that says nothing and writes down what it was
- * given; each utterance "ends" a moment later, as a real one would. Never real audio.
- */
-async function recordSpeech(page: Page) {
-  await page.addInitScript(() => {
-    const said: { text: string; rate: number; voice: string | undefined }[] = []
-    const voice = (voiceURI: string, name: string, lang: string, isDefault = false) => ({
-      voiceURI,
-      name,
-      lang,
-      default: isDefault,
-      localService: true,
-    })
-    // The default is German: an English one has to be picked.
-    const voices = [
-      voice('test-anna', 'Anna', 'de-DE', true),
-      voice('test-daniel', 'Daniel', 'en-GB'),
-      voice('test-samantha', 'Samantha', 'en-US'),
-    ]
-    class Utterance extends EventTarget {
-      text: string
-      voice: { voiceURI: string } | null = null
-      lang = ''
-      rate = 1
-      constructor(text: string) {
-        super()
-        this.text = text
-      }
-    }
-    const synth = Object.assign(new EventTarget(), {
-      getVoices: () => voices,
-      speak: (u: Utterance) => {
-        said.push({ text: u.text, rate: u.rate, voice: u.voice?.voiceURI })
-        setTimeout(() => u.dispatchEvent(new Event('end')), 30)
-      },
-      cancel: () => {},
-    })
-    Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true })
-    Object.defineProperty(window, 'SpeechSynthesisUtterance', {
-      value: Utterance,
-      configurable: true,
-    })
-    Object.assign(window, { said })
-  })
-  const said = () => page.evaluate(() => (window as unknown as { said: Said[] }).said)
-  return { said, texts: async () => (await said()).map((s) => s.text) }
-}
 
 const moves = (page: Page) => page.locator('.move-tree [data-san]')
 

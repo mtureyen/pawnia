@@ -39,6 +39,17 @@ describe('parseVoiceSettings', () => {
     expect(parseVoiceSettings(stored)).toEqual(stored)
   })
 
+  it('loads what was stored before the microphone had settings, with its defaults', () => {
+    const before = { botGames: false, localGames: true, voice: 'test-daniel', rate: 1.2 }
+    expect(parseVoiceSettings(before)).toEqual({
+      ...DEFAULT_VOICE_SETTINGS,
+      ...before,
+      speakMoves: false,
+      listening: 'push',
+      microphone: null,
+    })
+  })
+
   it('puts anything unknown back to the default', () => {
     expect(parseVoiceSettings({ botGames: 'yes', voice: '', rate: Number.NaN, extra: 1 })).toEqual(
       DEFAULT_VOICE_SETTINGS,
