@@ -60,7 +60,7 @@ const CLOSE_AFTER_MS = 1500
  * browser says the sentence ended, while its last sound may still be in the speakers and the
  * room, and in the detector's frames.
  */
-const SPEECH_TAIL_MS = 500
+const SPEECH_TAIL_MS = 400
 
 let snapshot: VoiceSnapshot = {
   settings: voiceSettings(),
@@ -130,7 +130,10 @@ onVoiceSettingsChange(() => {
   }
 })
 
-/** Always listening rests while the board speaks, and a moment after. */
+/**
+ * Always listening rests while the board speaks, and a moment after. Push to talk doesn't wait:
+ * a press stops the board (`press`).
+ */
 let speechTail: ReturnType<typeof setTimeout> | undefined
 speaker.onSpeakingChange((speaking) => {
   clearTimeout(speechTail)
@@ -328,6 +331,8 @@ export function press(): void {
     return
   }
   if (!microphone || snapshot.holding || snapshot.transcribing) return
+  // The user chose to talk: the board stops reading aloud, so the recording hears only them.
+  if (speaker.speaking) speaker.cancel()
   microphone.wake()
   recording = [...preRoll]
   set({ holding: true })
