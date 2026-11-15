@@ -30,6 +30,12 @@ export function setVoiceSettings(change: Partial<VoiceSettings>): void {
   for (const listener of listeners) listener()
 }
 
+/** Hears every change, for code outside React (the microphone's session). */
+export function onVoiceSettingsChange(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
 export function useVoiceSettings(): VoiceSettings {
   return useSyncExternalStore(
     (listener) => {

@@ -6,7 +6,6 @@
  * - `next(text)`: the next transcription (push to talk) returns `text`.
  * - `utter(text)`: in always-listening mode, someone just said `text`, as an utterance the
  *   detector cut out of the stream.
- * - `pause()`, `resume()`: what the board's speech will call (`pauseListening`, `resumeListening`).
  * - `transcriptions`: how many transcriptions ran, to check that a paused listener ran none.
  */
 import type { DetectorEvents, SpeechEngine } from './ports'
@@ -14,8 +13,6 @@ import type { DetectorEvents, SpeechEngine } from './ports'
 export interface VoiceScript {
   next(text: string): void
   utter(text: string): void
-  pause(): void
-  resume(): void
   transcriptions: number
 }
 
@@ -25,8 +22,7 @@ declare global {
   }
 }
 
-/** `listening` is the session's pause and resume, which the script hands to tests. */
-export function createScriptedEngine(listening: { pause(): void; resume(): void }): SpeechEngine {
+export function createScriptedEngine(): SpeechEngine {
   const queue: string[] = []
   /** An utterance's text goes with its audio: one dropped (paused) leaves nothing behind. */
   const said = new WeakMap<Float32Array, string>()
@@ -41,8 +37,6 @@ export function createScriptedEngine(listening: { pause(): void; resume(): void 
         events.onUtterance(audio)
       }
     },
-    pause: listening.pause,
-    resume: listening.resume,
     transcriptions: 0,
   }
   window.pawniaVoiceScript = script

@@ -1,5 +1,6 @@
-import { useEffect, useId, useState } from 'react'
-import { listMicrophones } from './microphone'
+import { Link } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
+import { ListeningChoice } from './ListeningChoice'
 import { DOWNLOAD_MB } from './model'
 import {
   acceptNotice,
@@ -7,8 +8,6 @@ import {
   press,
   release,
   retry,
-  setDevice,
-  setMode,
   toggleMuted,
   turnOff,
   turnOn,
@@ -20,26 +19,26 @@ import './Voice.css'
 /**
  * The voice controls a page shows: the mic button (hold it, or the space bar, to talk; in always
  * listening it stops and starts listening), what was heard and what came of it, a question when
- * there is one, and a small settings popover. Voice input stays off, and downloads nothing,
- * until the button is pressed the first time.
+ * there is one, and a popover to switch between push to talk and always listening (the rest is
+ * in Settings → Voice). Voice input stays off, and downloads nothing, until it is turned on.
  */
 export function VoicePanel({ voice }: { voice: VoiceView }) {
   const { session } = voice
   const [settingsOpen, setSettingsOpen] = useState(false)
   const ready = session.engine.kind === 'ready'
-  const push = session.settings.mode === 'push'
+  const push = session.settings.listening === 'push'
   usePushToTalkKey(ready && push)
 
   return (
-    <section className="voice" aria-label="Voice">
-      <div className="voice-bar">
+    <section className="mic" aria-label="Voice">
+      <div className="mic-bar">
         <MicButton session={session} />
-        <p className="voice-state" data-testid="voice-state">
+        <p className="mic-state" data-testid="voice-state">
           {stateText(session)}
         </p>
         <button
           type="button"
-          className="voice-settings-toggle"
+          className="mic-settings-toggle"
           aria-expanded={settingsOpen}
           aria-label="Voice settings"
           title="Voice settings"
@@ -52,14 +51,14 @@ export function VoicePanel({ voice }: { voice: VoiceView }) {
       {settingsOpen && <VoiceSettingsPopover session={session} />}
 
       {session.engine.kind === 'notice' && (
-        <div className="voice-notice" role="dialog" aria-label="Voice input">
+        <div className="mic-notice" role="dialog" aria-label="Voice input">
           <p>
             Move by speaking: pawnia listens with Whisper, a speech recognition model that runs on
             this computer, so what you say never leaves it. It downloads about {DOWNLOAD_MB} MB once
             (from Hugging Face); your browser keeps it for later visits.
           </p>
-          <div className="voice-notice-actions">
-            <button type="button" className="voice-primary" onClick={acceptNotice}>
+          <div className="mic-notice-actions">
+            <button type="button" className="mic-primary" onClick={acceptNotice}>
               Download and turn on
             </button>
             <button type="button" onClick={dismissNotice}>
@@ -71,7 +70,7 @@ export function VoicePanel({ voice }: { voice: VoiceView }) {
 
       {session.engine.kind === 'loading' && (
         <progress
-          className="voice-progress"
+          className="mic-progress"
           aria-label="Downloading the speech model"
           value={Math.round(session.engine.share * 100)}
           max={100}
@@ -79,17 +78,17 @@ export function VoicePanel({ voice }: { voice: VoiceView }) {
       )}
 
       {session.engine.kind === 'failed' && (
-        <p className="message message-error voice-error" role="alert">
+        <p className="message message-error mic-error" role="alert">
           The speech model could not be loaded: {session.engine.message}{' '}
-          <button type="button" className="voice-link" onClick={retry}>
+          <button type="button" className="mic-link" onClick={retry}>
             Try again
           </button>
         </p>
       )}
       {ready && session.mic.kind === 'failed' && (
-        <p className="message message-error voice-error" role="alert">
+        <p className="message message-error mic-error" role="alert">
           {session.mic.message}{' '}
-          <button type="button" className="voice-link" onClick={retry}>
+          <button type="button" className="mic-link" onClick={retry}>
             Try again
           </button>
         </p>
@@ -98,13 +97,13 @@ export function VoicePanel({ voice }: { voice: VoiceView }) {
       <Question voice={voice} />
 
       {(voice.heard || voice.note) && (
-        <p className="voice-heard" role="status" data-testid="voice-heard">
+        <p className="mic-heard" role="status" data-testid="voice-heard">
           {voice.heard && (
-            <span className="voice-heard-text">
+            <span className="mic-heard-text">
               Heard “<q>{voice.heard}</q>”
             </span>
           )}
-          {voice.note && <span className="voice-note">{voice.note}</span>}
+          {voice.note && <span className="mic-note">{voice.note}</span>}
         </p>
       )}
     </section>
@@ -118,7 +117,7 @@ function MicButton({ session }: { session: VoiceSnapshot }) {
     return (
       <button
         type="button"
-        className="voice-mic"
+        className="mic-button"
         aria-label="Turn on voice input"
         title="Move by speaking"
         disabled={busy}
@@ -128,12 +127,12 @@ function MicButton({ session }: { session: VoiceSnapshot }) {
       </button>
     )
   }
-  if (settings.mode === 'listen') {
+  if (settings.listening === 'always') {
     const on = !session.muted
     return (
       <button
         type="button"
-        className={`voice-mic${on ? ' voice-mic-live' : ''}${session.hearing ? ' voice-mic-hearing' : ''}`}
+        className={`mic-button${on ? ' mic-button-live' : ''}${session.hearing ? ' mic-button-hearing' : ''}`}
         aria-label={on ? 'Stop listening' : 'Start listening'}
         aria-pressed={on}
         title={on ? 'Listening: click to stop' : 'Click to listen again'}
@@ -146,7 +145,7 @@ function MicButton({ session }: { session: VoiceSnapshot }) {
   return (
     <button
       type="button"
-      className={`voice-mic${session.holding ? ' voice-mic-hearing' : ''}`}
+      className={`mic-button${session.holding ? ' mic-button-hearing' : ''}`}
       aria-label="Hold to talk"
       aria-pressed={session.holding}
       title="Hold to talk (or hold the space bar)"
@@ -180,7 +179,8 @@ function stateText(session: VoiceSnapshot): string {
   if (mic.kind === 'opening' || mic.kind === 'closed') return 'Opening the microphone…'
   if (mic.kind === 'failed') return 'No microphone'
   if (session.transcribing) return 'Making it out…'
-  if (settings.mode === 'push') return session.holding ? 'Listening…' : 'Hold Space and say a move'
+  if (settings.listening === 'push')
+    return session.holding ? 'Listening…' : 'Hold Space and say a move'
   if (session.muted) return 'Not listening'
   if (session.paused) return 'Paused'
   return session.hearing ? 'Hearing you…' : 'Listening'
@@ -191,9 +191,9 @@ function Question({ voice }: { voice: VoiceView }) {
   if (!question) return null
   if (question.kind === 'confirm') {
     return (
-      <div className="voice-question" role="group" aria-label="Confirm">
+      <div className="mic-question" role="group" aria-label="Confirm">
         <span>{question.command === 'resign' ? 'Resign this game?' : 'Offer a draw?'}</span>
-        <button type="button" className="voice-primary" onClick={() => voice.answer(true)}>
+        <button type="button" className="mic-primary" onClick={() => voice.answer(true)}>
           Yes
         </button>
         <button type="button" onClick={() => voice.answer(false)}>
@@ -203,7 +203,7 @@ function Question({ voice }: { voice: VoiceView }) {
     )
   }
   return (
-    <div className="voice-question" role="group" aria-label="Which move">
+    <div className="mic-question" role="group" aria-label="Which move">
       <span>{question.moves.length === 1 ? 'Did you mean' : 'Which one?'}</span>
       {question.moves.map((move, i) => (
         <button
@@ -211,80 +211,32 @@ function Question({ voice }: { voice: VoiceView }) {
           type="button"
           onClick={() => voice.pick(move)}
         >
-          {question.moves.length > 1 && <span className="voice-number">{i + 1}</span>}
+          {question.moves.length > 1 && <span className="mic-number">{i + 1}</span>}
           {move.san}
         </button>
       ))}
-      <button type="button" className="voice-link" onClick={voice.dismiss}>
+      <button type="button" className="mic-link" onClick={voice.dismiss}>
         Cancel
       </button>
     </div>
   )
 }
 
+/** The quick switch next to the mic button; the rest is in Settings → Voice. */
 function VoiceSettingsPopover({ session }: { session: VoiceSnapshot }) {
-  const id = useId()
-  const [microphones, setMicrophones] = useState<{ id: string; label: string }[]>([])
-  const micOpen = session.mic.kind === 'open'
-  useEffect(() => {
-    let live = true
-    // Labels come once the microphone was allowed, so the list is read again when it opens.
-    void listMicrophones().then((list) => live && setMicrophones(list))
-    return () => {
-      live = false
-    }
-  }, [micOpen])
-
   return (
-    <div className="voice-settings" role="group" aria-label="Voice settings">
-      <fieldset className="voice-modes">
-        <legend>Listening</legend>
-        <label>
-          <input
-            type="radio"
-            name={`${id}-mode`}
-            checked={session.settings.mode === 'push'}
-            onChange={() => setMode('push')}
-          />
-          Push to talk <span className="voice-hint">hold Space or the mic button</span>
-        </label>
-        <label>
-          <input
-            type="radio"
-            name={`${id}-mode`}
-            checked={session.settings.mode === 'listen'}
-            onChange={() => setMode('listen')}
-          />
-          Always listening <span className="voice-hint">acts on moves and commands only</span>
-        </label>
-      </fieldset>
-      {microphones.length > 1 && (
-        <label className="voice-device">
-          Device
-          <select
-            value={session.settings.deviceId ?? ''}
-            onChange={(e) => setDevice(e.target.value || undefined)}
-          >
-            <option value="">Browser default</option>
-            {microphones.map((mic) => (
-              <option key={mic.id} value={mic.id}>
-                {mic.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      {session.engine.kind === 'ready' && session.engine.device !== 'scripted' && (
-        <p className="voice-hint">
-          Whisper runs on this computer (
-          {session.engine.device === 'webgpu' ? 'graphics card' : 'processor'}).
-        </p>
-      )}
-      {session.settings.on && (
-        <button type="button" className="voice-link" onClick={turnOff}>
-          Turn voice input off
-        </button>
-      )}
+    <div className="mic-popover" role="group" aria-label="Voice settings">
+      <ListeningChoice />
+      <div className="mic-popover-links">
+        <Link to="/settings" search={{ tab: 'voice' }} className="mic-link">
+          Microphone and more
+        </Link>
+        {session.settings.speakMoves && (
+          <button type="button" className="mic-link" onClick={turnOff}>
+            Turn voice input off
+          </button>
+        )}
+      </div>
     </div>
   )
 }
