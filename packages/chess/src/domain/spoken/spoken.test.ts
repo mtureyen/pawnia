@@ -247,6 +247,8 @@ describe('readSpokenMove: promotion', () => {
     [PROMOTE, 'e8 knight', 'e8=N'],
     [PROMOTE, 'e8 rook', 'e8=R'],
     [PROMOTE, 'e8 promotes to bishop', 'e8=B'],
+    // How Whisper writes "promote to knight".
+    [PROMOTE, 'e8 promote tonight', 'e8=N'],
     [PROMOTE, 'e8=N', 'e8=N'],
     [PROMOTE, 'e takes d8 queen', 'exd8=Q+'],
     [PROMOTE, 'exd8=N', 'exd8=N'],

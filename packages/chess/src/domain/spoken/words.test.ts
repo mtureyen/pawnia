@@ -17,6 +17,7 @@ describe('cleanWords', () => {
     ['Oh, oh, oh.', ['castle', 'long']],
     ['castle king side', ['castle', 'kingside']],
     ['Queen-side castle', ['queenside', 'castle']],
+    ['A8 promote tonight.', ['a8', 'promote', 'to', 'knight']],
     ['', []],
   ])('%j → %j', (transcript, words) => {
     expect(cleanWords(transcript)).toEqual(words)

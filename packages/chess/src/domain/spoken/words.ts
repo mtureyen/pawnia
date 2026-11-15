@@ -267,6 +267,8 @@ export function cleanWords(transcript: string): string[] {
     .replace(CASTLING, (match) =>
       match.trim().split(/\s+/).length === 3 ? ' castle long ' : ' castle short ',
     )
+    // Whisper hears "promote to knight" as "promote tonight", with every voice tried.
+    .replace(/ tonight /g, ' to knight ')
     .replace(/ kings? +side /g, ' kingside ')
     .replace(/ queens? +side /g, ' queenside ')
   return text.split(' ').filter(Boolean)
