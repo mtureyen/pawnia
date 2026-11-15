@@ -39,6 +39,7 @@ import { PlayerBar } from '@/shared/game/PlayerBar'
 import { playerBars, useMaterial } from '@/shared/game/players'
 import { useGame } from '@/shared/game/useGame'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
+import { useSteppingVoice } from '@/shared/voice/useSteppingVoice'
 import { EnginePanel } from './EnginePanel'
 import { EvalBar } from './EvalBar'
 import { useEngineAnalysis } from './useEngineAnalysis'
@@ -135,8 +136,10 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
     () => setTurned(orientation === 'white' ? 'black' : 'white'),
     [orientation],
   )
+  // Stepping through the game reads the moves, if asked; other changes stay quiet.
+  const step = useSteppingVoice(update)
   useGameKeyboard(
-    update,
+    step,
     useMemo(() => ({ f: flip, l: () => setEngineEnabled((on) => !on) }), [flip]),
   )
 
@@ -282,7 +285,7 @@ export function AnalysisPage({ initial }: { initial: AnalysisInitial }) {
         </div>
 
         <div className="controls">
-          <NavigationControls view={view} update={update} />
+          <NavigationControls view={view} update={step} />
           <div className="actions">
             <button
               type="button"

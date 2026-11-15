@@ -1,4 +1,11 @@
-import { createGame, exportPgn, type Color, type PgnHeaders } from '@pawnia/chess'
+import {
+  createGame,
+  exportPgn,
+  sayMove,
+  type Color,
+  type Move,
+  type PgnHeaders,
+} from '@pawnia/chess'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
@@ -11,6 +18,10 @@ import { PlayerBar } from '@/shared/game/PlayerBar'
 import { playerBars, useMaterial } from '@/shared/game/players'
 import { useGame } from '@/shared/game/useGame'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
+import { announcement, sayEnd } from '@/shared/voice/announce'
+import { SpeakerToggle } from '@/shared/voice/SpeakerToggle'
+import { speaker } from '@/shared/voice/speech'
+import { readAloud, useVoiceSettings } from '@/shared/voice/voiceStore'
 import '@/shared/game/GamePanel.css'
 
 const newRecord = () => ({ id: crypto.randomUUID(), startedAt: new Date().toISOString() })
@@ -25,6 +36,7 @@ export function PlayPage() {
   const [orientation, setOrientation] = useState<Color>('white')
   const navigate = useNavigate()
   const { play } = useServices()
+  const readMoves = useVoiceSettings().localGames
   const [record, setRecord] = useState(newRecord)
   const [saved, setSaved] = useState<'no' | 'saving' | 'yes' | 'failed'>('no')
   const saves = useRef<Promise<unknown>>(Promise.resolve())
@@ -54,6 +66,16 @@ export function PlayPage() {
     setSaved('no')
   }
 
+  /** Plays a move from the board and, if asked, reads it aloud (with the end it brings). */
+  const playMove = (move: Move) =>
+    update((g) => {
+      const node = g.play(move)
+      if (readMoves && node?.move)
+        readAloud(announcement(sayMove(node.move.san), sayEnd(g.status(node))))
+    })
+  // Leaving the game leaves it quiet.
+  useEffect(() => () => speaker.cancel(), [])
+
   const flip = () => setOrientation((o) => (o === 'white' ? 'black' : 'white'))
   useGameKeyboard(
     update,
@@ -74,7 +96,7 @@ export function PlayPage() {
           lastMove={view.lastMove}
           check={view.check}
           isPromotion={(from, to) => game.isPromotion(from, to)}
-          onMove={(move) => update((g) => g.play(move))}
+          onMove={playMove}
         />
         <PlayerBar {...players[orientation]} />
       </section>
@@ -123,6 +145,7 @@ export function PlayPage() {
             >
               Analyse
             </button>
+            <SpeakerToggle where="localGames" />
           </div>
         </div>
 
