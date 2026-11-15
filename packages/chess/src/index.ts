@@ -28,3 +28,13 @@ export {
   type ImportedGame,
   type PgnHeaders,
 } from './domain/pgn'
+export {
+  formatSan,
+  parseSanParts,
+  sanVariants,
+  type NotationSlip,
+  type PieceLetter,
+  type PromotionLetter,
+  type SanParts,
+  type SanVariant,
+} from './domain/notation'
