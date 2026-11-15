@@ -1,16 +1,17 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { BoardAppearanceForm } from '@/app/BoardSettings'
 import { CoachSettings } from './CoachSettings'
+import type { SettingsTab } from './search'
+import { VoiceTab } from './VoiceTab'
 import './Settings.css'
-
-export type SettingsTab = 'board' | 'coach'
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'board', label: 'Board' },
+  { id: 'voice', label: 'Voice' },
   { id: 'coach', label: 'Coach' },
 ]
 
-/** /settings: the board's look and the coach's providers. */
+/** /settings: the board's look, what it reads aloud, and the coach's providers. */
 export function SettingsPage() {
   const { tab = 'board' } = useSearch({ from: '/settings' })
   const navigate = useNavigate()
@@ -35,6 +36,8 @@ export function SettingsPage() {
           <div className="settings-board">
             <BoardAppearanceForm />
           </div>
+        ) : tab === 'voice' ? (
+          <VoiceTab />
         ) : (
           <CoachSettings />
         )}

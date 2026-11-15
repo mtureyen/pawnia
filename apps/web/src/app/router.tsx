@@ -5,6 +5,7 @@ import {
   lazyRouteComponent,
 } from '@tanstack/react-router'
 import { parseAnalysisSearch } from '@/features/analysis/search'
+import { parseSettingsSearch } from '@/features/settings/search'
 import { parseStatsSearch } from '@/features/stats/search'
 import { parseNotationSearch } from '@/features/training/notation/search'
 import { parseOpeningsSearch } from '@/features/training/openings/search'
@@ -115,8 +116,7 @@ const statsRoute = createRoute({
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
-  validateSearch: (search: Record<string, unknown>): { tab?: 'board' | 'coach' } =>
-    search.tab === 'board' || search.tab === 'coach' ? { tab: search.tab } : {},
+  validateSearch: parseSettingsSearch,
   component: lazyRouteComponent(() => import('@/features/settings/SettingsPage'), 'SettingsPage'),
 })
 
