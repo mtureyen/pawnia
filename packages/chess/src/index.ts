@@ -38,6 +38,7 @@ export {
   type SanParts,
   type SanVariant,
 } from './domain/notation'
+export { sayMove } from './domain/sayMove'
 export {
   readSpokenMove,
   SPOKEN_COMMANDS,
