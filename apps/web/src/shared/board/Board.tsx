@@ -36,6 +36,18 @@ export interface BoardProps {
   badge?: BoardBadge
   /** What the coach drew on this position: arrows and circled squares. */
   drawing?: BoardDrawing
+  /** Shows or hides the coordinates on this board alone; without it, the user's setting holds. */
+  coordinates?: boolean
+  /** Hears a click or tap on any square, empty or not (e.g. "find the square"). */
+  onSquare?: (square: SquareName) => void
+  /** Squares the page colours in, e.g. a trainer's question and its answer. */
+  highlights?: BoardHighlight[]
+}
+
+export interface BoardHighlight {
+  square: SquareName
+  /** The square asked about; one answered right; one answered wrong. */
+  tone: 'target' | 'right' | 'wrong'
 }
 
 export interface BoardDrawing {
@@ -76,7 +88,9 @@ export function Board(props: BoardProps) {
   const api = useRef<Api | null>(null)
   const latest = useRef(props)
   const [promotion, setPromotion] = useState<{ from: SquareName; to: SquareName }>()
-  const { coordinates } = useBoardAppearance()
+  const appearance = useBoardAppearance()
+  const coordinates = props.coordinates ?? appearance.coordinates
+  const coordinatesAtStart = useRef(coordinates)
   /** The user's coloured squares (right-click); their arrows live in chessground's shapes. */
   const marks = useRef(new Map<Key, MarkBrush>())
 
@@ -93,13 +107,20 @@ export function Board(props: BoardProps) {
     }
     const showMarks = (next: Map<Key, MarkBrush>) => {
       marks.current = next
-      api.current?.set({ highlight: { custom: markClasses(next) } })
+      api.current?.set({ highlight: { custom: customClasses(next, latest.current.highlights) } })
     }
     const cg = Chessground(host.current!, {
       ...toConfig(latest.current),
+      // Drawn right the first time: a board without them shows none even for a moment.
+      coordinates: coordinatesAtStart.current,
       animation: { duration: 180 },
       premovable: { enabled: false },
-      highlight: { lastMove: true, check: true },
+      highlight: {
+        lastMove: true,
+        check: true,
+        custom: customClasses(new Map(), latest.current.highlights),
+      },
+      events: { select: (key) => latest.current.onSquare?.(key as SquareName) },
       drawable: {
         brushes: { ...MARK_BRUSHES, ...COACH_BRUSHES },
         // chessground draws a right-clicked square as a circle: colour the square instead.
@@ -150,11 +171,21 @@ export function Board(props: BoardProps) {
     if (fen !== markedFen.current) {
       markedFen.current = fen
       marks.current = new Map()
-      cg.set({ ...toConfig(latest.current), highlight: { custom: new Map() } })
+      cg.set({
+        ...toConfig(latest.current),
+        highlight: { custom: customClasses(new Map(), latest.current.highlights) },
+      })
     } else {
       cg.set({ ...toConfig(latest.current), drawable: { shapes: cg.state.drawable.shapes } })
     }
   }, [fen, orientation, turnColor, dests, check, lastMove])
+
+  const highlightsKey = (props.highlights ?? []).map((h) => `${h.square}:${h.tone}`).join(',')
+  useEffect(() => {
+    api.current?.set({
+      highlight: { custom: customClasses(marks.current, latest.current.highlights) },
+    })
+  }, [highlightsKey])
 
   const { badge, drawing } = props
   const shapesKey = [
@@ -198,6 +229,16 @@ export function Board(props: BoardProps) {
       )}
     </div>
   )
+}
+
+/** The user's coloured squares, with the page's own highlights over them. */
+function customClasses(
+  marks: ReadonlyMap<Key, MarkBrush>,
+  highlights: readonly BoardHighlight[] = [],
+): Map<Key, string> {
+  const classes = markClasses(marks)
+  for (const { square, tone } of highlights) classes.set(square, `highlight-${tone}`)
+  return classes
 }
 
 /** Drawn in a 100×100 box whose origin is the square's top-left corner; the badge sits top-right. */
