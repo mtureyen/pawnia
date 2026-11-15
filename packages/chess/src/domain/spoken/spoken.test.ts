@@ -434,6 +434,7 @@ describe('readSpokenMove: commands', () => {
     ['offer a draw', 'draw'],
     ['Offer draw.', 'draw'],
     ['accept the draw', 'draw'],
+    ['All for a draw.', 'draw'],
     ['cancel', 'cancel'],
     ['No.', 'cancel'],
     ['never mind', 'cancel'],
@@ -458,6 +459,8 @@ describe('readSpokenMove: commands', () => {
     expect(read(START, 'take b4')).not.toMatch(/^command/)
     expect(read(START, 'draw e4')).not.toMatch(/^command/)
     expect(read(START, 'no e4')).not.toMatch(/^command/)
+    expect(read(START, 'all for')).not.toMatch(/^command/)
+    expect(read(START, 'all for a draw e4')).not.toMatch(/^command/)
     expect(read(ONE_CAPTURE, 'take')).toBe('move exd5')
   })
 })

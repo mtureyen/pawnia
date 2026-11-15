@@ -52,7 +52,9 @@ export const SPOKEN_COMMANDS: Readonly<Record<SpokenCommand, readonly string[]>>
   takeBack: ['take back', 'takeback', 'undo'],
   flip: ['flip', 'rotate'],
   resign: ['resign', 'give up'],
-  draw: ['draw', 'offer draw', 'draw offer', 'accept draw'],
+  // "All for a draw" is how Whisper wrote "offer a draw" in an Irish voice. Only the whole phrase
+  // counts, and it holds no move, so no move can become a draw offer by it.
+  draw: ['draw', 'offer draw', 'draw offer', 'accept draw', 'all for draw'],
   cancel: ['cancel', 'no', 'never mind', 'nevermind'],
   confirm: ['yes', 'yeah', 'confirm'],
 }
