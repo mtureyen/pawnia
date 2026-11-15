@@ -157,3 +157,17 @@ export function typedSquare(text: string): SquareName | undefined {
   const t = text.trim().toLowerCase()
   return /^[a-h][1-8]$/.test(t) ? (t as SquareName) : undefined
 }
+
+/** The part of the board drilled, in words: "the e-file", "ranks 1 and 2", "the e-file on rank 4". */
+export function partOfBoardText(files: readonly string[], ranks: readonly string[]): string {
+  const list = (items: readonly string[]) =>
+    items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`
+  const f = [...files].sort()
+  const r = [...ranks].sort()
+  const fileText = f.length === 1 ? `the ${f[0]}-file` : `files ${list(f)}`
+  const rankText = r.length === 1 ? `rank ${r[0]}` : `ranks ${list(r)}`
+  if (f.length === 0 && r.length === 0) return 'the whole board'
+  if (f.length === 0) return rankText
+  if (r.length === 0) return fileText
+  return `${fileText} on ${rankText}`
+}

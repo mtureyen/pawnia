@@ -12,6 +12,9 @@ export interface NotationProgress {
   best: Record<string, number>
 }
 
+/** Changes what the trainer remembers (and stores it). */
+export type UpdateProgress = (change: (progress: NotationProgress) => NotationProgress) => void
+
 export function emptyProgress(): NotationProgress {
   return { squares: { white: {}, black: {} }, moves: {}, best: {} }
 }

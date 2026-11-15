@@ -94,6 +94,15 @@ const repertoireRoute = createRoute({
   ),
 })
 
+const notationRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/training/notation',
+  component: lazyRouteComponent(
+    () => import('@/features/training/notation/NotationPage'),
+    'NotationPage',
+  ),
+})
+
 const statsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/stats',
@@ -121,6 +130,7 @@ const routeTree = rootRoute.addChildren([
   openingsRoute,
   libraryRoute,
   repertoireRoute,
+  notationRoute,
   statsRoute,
   settingsRoute,
 ])

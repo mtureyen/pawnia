@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   drilledSquares,
+  partOfBoardText,
   pickSquare,
   recordAnswer,
   squareChoices,
@@ -162,5 +163,14 @@ describe('typedSquare', () => {
     expect(typedSquare(' F6 ')).toBe('f6')
     expect(typedSquare('f')).toBeUndefined()
     expect(typedSquare('i9')).toBeUndefined()
+  })
+})
+
+describe('partOfBoardText', () => {
+  it('says which part of the board is drilled', () => {
+    expect(partOfBoardText([], [])).toBe('the whole board')
+    expect(partOfBoardText(['e'], [])).toBe('the e-file')
+    expect(partOfBoardText([], ['3', '1', '2', '4'])).toBe('ranks 1, 2, 3 and 4')
+    expect(partOfBoardText(['f', 'e'], ['4'])).toBe('files e and f on rank 4')
   })
 })
