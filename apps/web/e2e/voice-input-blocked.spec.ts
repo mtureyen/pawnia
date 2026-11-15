@@ -1,8 +1,13 @@
 import { expect, test } from '@playwright/test'
 
-// Without --use-fake-ui-for-media-stream and without the permission granted, Chrome turns the
-// request for the microphone down, as when the user blocked it.
+// The browser turns the request for the microphone down, as when the user blocked it. Done in
+// the page rather than left to the browser: how a browser refuses without a prompt differs
+// (Chrome on a desktop says "not allowed", Playwright's Chromium on a server "not supported").
 test('a blocked microphone says how to allow it', async ({ page }) => {
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
+  })
   await page.goto('/')
   await page.getByRole('button', { name: 'Turn on voice input' }).click()
   await page
