@@ -32,9 +32,11 @@ import { MoveTree } from '@/shared/game/MoveTree'
 import { NavigationControls } from '@/shared/game/NavigationControls'
 import { useMaterial } from '@/shared/game/players'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
+import { SpeakerToggle } from '@/shared/voice/SpeakerToggle'
 import { ClockFace } from './ClockFace'
 import { coachCommentsOn, rememberCoachComments } from './coachComments'
 import { useBotGame } from './useBotGame'
+import { useBotGameVoice } from './useBotGameVoice'
 import { useMoveComments, type MoveComment } from './useMoveComments'
 import '@/features/review/Review.css'
 import '@/shared/game/GamePanel.css'
@@ -306,6 +308,15 @@ function BotGame({
     rating,
     enabled: comments && chat.agent !== undefined,
   })
+  const end = view.line.at(-1) ?? view.root
+  useBotGameVoice({
+    end,
+    over: bot.over,
+    status: game.status(end),
+    termination: bot.termination,
+    color: setup.color,
+    comments: moveComments,
+  })
   const coachContext = () => {
     const { color, level } = setup
     const [white, black] =
@@ -472,6 +483,7 @@ function BotGame({
           <div className="bot-player">
             <span className={`player-dot player-dot-${setup.color}`} aria-hidden />
             <span className="bot-opponent-name">You</span>
+            <SpeakerToggle where="botGames" />
             {bot.clock && <ClockFace clock={bot.clock} color={setup.color} />}
           </div>
           <TakenPieces material={material} color={setup.color} />

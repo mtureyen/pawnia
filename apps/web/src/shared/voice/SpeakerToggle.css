@@ -1,0 +1,9 @@
+.speaker-toggle {
+  display: grid;
+  place-items: center;
+}
+
+/* Muted: the icon says so, dimmed like a control that is off. */
+.speaker-toggle[aria-pressed='false'] {
+  color: var(--text-muted);
+}
