@@ -1,0 +1,235 @@
+.voice {
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.voice-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.panel .voice-mic {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border-radius: 50%;
+  /* Held down on a phone: no scrolling, text selection or callout while talking. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.panel .voice-mic-live {
+  color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.panel .voice-mic-hearing {
+  color: var(--on-accent);
+  background: var(--danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 35%, transparent);
+  animation: voice-pulse 1.2s ease-in-out infinite;
+}
+
+.panel .voice-mic-hearing:hover:not(:disabled) {
+  background: var(--danger);
+}
+
+@keyframes voice-pulse {
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--danger) 15%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel .voice-mic-hearing {
+    animation: none;
+  }
+}
+
+.voice-state {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel .voice-settings-toggle {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.panel .voice-settings-toggle[aria-expanded='true'] {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.voice-settings,
+.voice-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0 0.5rem 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.voice-notice p {
+  margin: 0;
+}
+
+.voice-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.panel .voice-notice button {
+  border-radius: 4px;
+  background: var(--hover);
+}
+
+.panel .voice-primary,
+.panel .voice-notice .voice-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.panel .voice-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 85%, black);
+}
+
+.voice-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.voice-modes legend,
+.voice-device {
+  margin-bottom: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.voice-modes label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.voice-device {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.voice-device select {
+  padding: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.voice-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.panel .voice-link {
+  align-self: flex-start;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.panel .voice-link:hover:not(:disabled) {
+  background: none;
+}
+
+.voice-progress {
+  display: block;
+  width: calc(100% - 1rem);
+  height: 0.4rem;
+  margin: 0 0.5rem 0.5rem;
+  accent-color: var(--accent);
+}
+
+.voice-error {
+  padding: 0 0.75rem 0.5rem;
+}
+
+.voice-question {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.75rem 0.5rem;
+}
+
+.panel .voice-question button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+}
+
+.voice-number {
+  display: inline-grid;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: #3f9fd8;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.voice-heard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.4rem;
+  margin: 0;
+  padding: 0 0.75rem 0.5rem;
+}
+
+.voice-heard-text {
+  color: var(--text-muted);
+}
+
+.voice-heard q {
+  quotes: none;
+  color: var(--text);
+}
