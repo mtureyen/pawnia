@@ -16,8 +16,6 @@ declare global {
     pawniaVoiceScript?: {
       next(text: string): void
       utter(text: string): void
-      pause(): void
-      resume(): void
       transcriptions: number
     }
   }
@@ -159,22 +157,98 @@ test.describe('with the microphone allowed', () => {
     await expect(moves(page).first()).toHaveAttribute('data-san', 'e4')
     await expect(heard(page)).toContainText('Played e4.')
 
-    // Paused while the board speaks, it acts on nothing and transcribes nothing.
-    await page.evaluate(() => window.pawniaVoiceScript!.pause())
-    await expect(state(page)).toHaveText('Paused')
-    const before = await page.evaluate(() => window.pawniaVoiceScript!.transcriptions)
-    await page.evaluate(() => window.pawniaVoiceScript!.utter('e5'))
-    await page.waitForTimeout(300)
-    await expect(moves(page)).toHaveCount(1)
-    expect(await page.evaluate(() => window.pawniaVoiceScript!.transcriptions)).toBe(before)
-    await page.evaluate(() => window.pawniaVoiceScript!.resume())
-    await expect(state(page)).toHaveText('Listening')
-
     // Stopped with the mic button, it hears nothing.
     await mic.click()
     await expect(state(page)).toHaveText('Not listening')
     await page.evaluate(() => window.pawniaVoiceScript!.utter('e5'))
     await page.waitForTimeout(300)
     await expect(moves(page)).toHaveCount(1)
+  })
+
+  test('always listening rests while the board reads a move aloud', async ({ page }) => {
+    // Speech synthesis that says nothing and ends only when the test says so; voice settings as
+    // Settings → Voice leaves them: moves read aloud on one screen, the microphone always on.
+    await page.addInitScript(() => {
+      const playing = new Set<EventTarget>()
+      class Utterance extends EventTarget {
+        text: string
+        voice = null
+        lang = ''
+        rate = 1
+        constructor(text: string) {
+          super()
+          this.text = text
+        }
+      }
+      const voices = [{ voiceURI: 'test', name: 'Test', lang: 'en-US', default: true }]
+      const synth = Object.assign(new EventTarget(), {
+        getVoices: () => voices,
+        speak: (u: Utterance) => void playing.add(u),
+        cancel: () => playing.clear(),
+      })
+      Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true })
+      Object.defineProperty(window, 'SpeechSynthesisUtterance', {
+        value: Utterance,
+        configurable: true,
+      })
+      Object.assign(window, {
+        endSpeech: () => {
+          for (const u of playing) u.dispatchEvent(new Event('end'))
+          playing.clear()
+        },
+      })
+      localStorage.setItem(
+        'pawnia.voice',
+        JSON.stringify({
+          localGames: true,
+          speakMoves: true,
+          speechModelAccepted: true,
+          listening: 'always',
+        }),
+      )
+    })
+    await page.goto('/')
+    await expect(state(page)).toHaveText('Listening')
+
+    await page.evaluate(() => window.pawniaVoiceScript!.utter('e4'))
+    await expect(moves(page).first()).toHaveAttribute('data-san', 'e4')
+    // The board says "e4": the listener rests and hears nothing meanwhile.
+    await expect(state(page)).toHaveText('Paused')
+    const before = await page.evaluate(() => window.pawniaVoiceScript!.transcriptions)
+    await page.evaluate(() => window.pawniaVoiceScript!.utter('e5'))
+    await page.waitForTimeout(300)
+    await expect(moves(page)).toHaveCount(1)
+    expect(await page.evaluate(() => window.pawniaVoiceScript!.transcriptions)).toBe(before)
+
+    // A moment after the board is done, it listens again.
+    await page.evaluate(() => (window as unknown as { endSpeech(): void }).endSpeech())
+    await expect(state(page)).toHaveText('Listening')
+    await page.evaluate(() => window.pawniaVoiceScript!.utter('e5'))
+    await expect(moves(page).nth(1)).toHaveAttribute('data-san', 'e5')
+  })
+
+  test('Settings → Voice turns speaking moves on and sets how it listens', async ({ page }) => {
+    await page.goto('/settings?tab=voice')
+    const card = page.getByRole('region', { name: 'Speaking moves' })
+    await expect(card).toContainText(/about \d+ MB/)
+    const toggle = card.getByRole('switch', { name: 'Move by speaking' })
+    await expect(toggle).toHaveAttribute('aria-checked', 'false')
+    await toggle.click()
+    await card.getByRole('radio', { name: /Always listening/ }).check()
+    await expect(card.getByRole('combobox', { name: 'Microphone' })).toHaveValue('')
+
+    // The board then needs no notice, and listens at once.
+    await page.goto('/')
+    await expect(page.getByRole('dialog', { name: 'Voice input' })).toHaveCount(0)
+    await expect(state(page)).toHaveText('Listening')
+
+    // The quick switch by the mic button changes the same setting.
+    await page.getByRole('button', { name: 'Voice settings' }).click()
+    await voice(page)
+      .getByRole('radio', { name: /Push to talk/ })
+      .check()
+    await expect(state(page)).toHaveText('Hold Space and say a move')
+    await page.goto('/settings?tab=voice')
+    await expect(card.getByRole('radio', { name: /Push to talk/ })).toBeChecked()
   })
 })

@@ -13,6 +13,15 @@ describe('parseVoiceSettings', () => {
     })
   })
 
+  it('leaves the microphone alone until told otherwise: no download, push to talk', () => {
+    expect(DEFAULT_VOICE_SETTINGS).toMatchObject({
+      speakMoves: false,
+      speechModelAccepted: false,
+      listening: 'push',
+      microphone: null,
+    })
+  })
+
   it('keeps what was stored', () => {
     const stored = {
       botGames: false,
@@ -22,12 +31,19 @@ describe('parseVoiceSettings', () => {
       coachComments: true,
       voice: 'com.apple.voice.compact.en-GB.Daniel',
       rate: 1.4,
+      speakMoves: true,
+      speechModelAccepted: true,
+      listening: 'always',
+      microphone: 'a1b2c3',
     }
     expect(parseVoiceSettings(stored)).toEqual(stored)
   })
 
   it('puts anything unknown back to the default', () => {
     expect(parseVoiceSettings({ botGames: 'yes', voice: '', rate: Number.NaN, extra: 1 })).toEqual(
+      DEFAULT_VOICE_SETTINGS,
+    )
+    expect(parseVoiceSettings({ speakMoves: 1, listening: 'sometimes', microphone: '' })).toEqual(
       DEFAULT_VOICE_SETTINGS,
     )
     expect(parseVoiceSettings({ rate: 9 }).rate).toBe(2)

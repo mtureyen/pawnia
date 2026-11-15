@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { SpeakingMovesCard } from '@/features/voice/SpeakingMovesCard'
 import { speaker } from '@/shared/voice/speech'
 import { isEnglish } from '@/shared/voice/voices'
 import { RATE_RANGE, type VoiceSettings } from '@/shared/voice/voiceSettings'
@@ -56,8 +57,8 @@ function SwitchRow({
 }
 
 /**
- * Settings → Voice: what the board reads aloud, with which voice and how fast. Kept in this
- * browser. Speaking moves into the microphone will get its own section here.
+ * Settings → Voice: what the board reads aloud, with which voice and how fast, and speaking moves
+ * into the microphone. Kept in this browser.
  */
 export function VoiceTab() {
   const id = useId()
@@ -170,6 +171,8 @@ export function VoiceTab() {
           Try it
         </button>
       </section>
+
+      <SpeakingMovesCard />
     </div>
   )
 }

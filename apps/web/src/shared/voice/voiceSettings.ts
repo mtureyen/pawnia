@@ -1,6 +1,6 @@
 /**
- * What the board reads aloud, and how. A per-device preference: the voices are the browser's.
- * The microphone's settings (speaking moves) will join these later.
+ * What the board reads aloud, and how, and how moves are spoken into the microphone. A per-device
+ * preference: the voices and the microphones are the browser's.
  */
 export interface VoiceSettings {
   /** The bot's moves and how the game ended. On by default: that's where hearing moves helps. */
@@ -20,7 +20,20 @@ export interface VoiceSettings {
   voice: string | null
   /** 1 is normal speed. */
   rate: number
+  /**
+   * Moving by speaking. Off until turned on, since it downloads a speech model; once on, the model
+   * loads when a page with a board opens.
+   */
+  speakMoves: boolean
+  /** The user agreed to that download (on the board's notice or here): it isn't asked again. */
+  speechModelAccepted: boolean
+  /** Push to talk (hold Space or the mic button) or always listening. */
+  listening: ListeningMode
+  /** A microphone's `deviceId`; null for the browser's default. */
+  microphone: string | null
 }
+
+export type ListeningMode = 'push' | 'always'
 
 export const RATE_RANGE = { min: 0.5, max: 2, step: 0.1 } as const
 
@@ -32,9 +45,21 @@ export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
   coachComments: false,
   voice: null,
   rate: 1,
+  speakMoves: false,
+  speechModelAccepted: false,
+  listening: 'push',
+  microphone: null,
 }
 
-const SWITCHES = ['botGames', 'localGames', 'analysis', 'ownMoves', 'coachComments'] as const
+const SWITCHES = [
+  'botGames',
+  'localGames',
+  'analysis',
+  'ownMoves',
+  'coachComments',
+  'speakMoves',
+  'speechModelAccepted',
+] as const
 
 /** Stored settings, with anything unknown (an old or edited value) back at the default. */
 export function parseVoiceSettings(value: unknown): VoiceSettings {
@@ -48,6 +73,9 @@ export function parseVoiceSettings(value: unknown): VoiceSettings {
     if (typeof on === 'boolean') settings[key] = on
   }
   if (typeof stored.voice === 'string' && stored.voice) settings.voice = stored.voice
+  if (stored.listening === 'always') settings.listening = 'always'
+  if (typeof stored.microphone === 'string' && stored.microphone)
+    settings.microphone = stored.microphone
   const rate = stored.rate
   if (typeof rate === 'number' && Number.isFinite(rate))
     settings.rate = Math.min(RATE_RANGE.max, Math.max(RATE_RANGE.min, rate))

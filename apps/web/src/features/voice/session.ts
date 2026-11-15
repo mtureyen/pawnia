@@ -1,20 +1,18 @@
 /**
  * Voice input for the whole app, once: the speech engine (loaded the first time voice is turned
  * on, then kept while the app is open), the microphone (open while a page that takes voice is
- * shown), push to talk and always listening. Pages see it through `useVoice`; what a transcript
- * means for the board is theirs to decide (`decide.ts`).
+ * shown), push to talk and always listening. Its settings are the shared voice settings
+ * (Settings → Voice); a change made there takes effect here at once. Pages see it through
+ * `useVoice`; what a transcript means for the board is theirs to decide (`decide.ts`).
  */
 import { useSyncExternalStore } from 'react'
+import { speaker } from '@/shared/voice/speech'
+import type { ListeningMode, VoiceSettings } from '@/shared/voice/voiceSettings'
+import { onVoiceSettingsChange, setVoiceSettings, voiceSettings } from '@/shared/voice/voiceStore'
 import { MicrophoneError, openMicrophone, type Microphone } from './microphone'
 import { SAMPLE_RATE } from './model'
 import type { SpeechEngine, UtteranceDetector } from './ports'
 import { concat } from './segmenter'
-import {
-  loadVoiceSettings,
-  saveVoiceSettings,
-  type VoiceMode,
-  type VoiceSettings,
-} from './voiceSettings'
 
 export type EngineState =
   | { kind: 'off' }
@@ -40,7 +38,7 @@ export interface VoiceSnapshot {
   hearing: boolean
   /** A transcription is running (the listener rests meanwhile). */
   transcribing: boolean
-  /** Always listening was paused from outside (the board reading a move aloud). */
+  /** Always listening rests while the board reads aloud, so it doesn't hear itself. */
   paused: boolean
   /** The user switched always listening off for now with the mic button. */
   muted: boolean
@@ -57,15 +55,21 @@ const MIN_PUSH_SECONDS = 0.3
 const PRE_ROLL_SECONDS = 0.25
 /** The microphone stays open this long after the last page with voice closed (page changes). */
 const CLOSE_AFTER_MS = 1500
+/**
+ * Listening resumes this long after the board stops speaking: `speaking` turns false when the
+ * browser says the sentence ended, while its last sound may still be in the speakers and the
+ * room, and in the detector's frames.
+ */
+const SPEECH_TAIL_MS = 500
 
 let snapshot: VoiceSnapshot = {
-  settings: loadVoiceSettings(),
+  settings: voiceSettings(),
   engine: { kind: 'off' },
   mic: { kind: 'closed' },
   holding: false,
   hearing: false,
   transcribing: false,
-  paused: false,
+  paused: speaker.speaking,
   muted: false,
 }
 const listeners = new Set<() => void>()
@@ -86,12 +90,6 @@ function set(change: Partial<VoiceSnapshot>) {
   for (const listener of listeners) listener()
 }
 
-function setSettings(change: Partial<VoiceSettings>) {
-  const settings = { ...snapshot.settings, ...change }
-  saveVoiceSettings(settings)
-  set({ settings })
-}
-
 const page = () => pages.at(-1)
 
 export function useVoiceSession(): VoiceSnapshot {
@@ -107,11 +105,43 @@ export function useVoiceSession(): VoiceSnapshot {
 /** Picks the engine: the scripted one in end-to-end test builds, else Whisper in a worker. */
 async function createSpeechEngine(): Promise<SpeechEngine> {
   if (import.meta.env.VITE_PAWNIA_VOICE === 'scripted')
-    return (await import('./scriptedEngine')).createScriptedEngine({
-      pause: pauseListening,
-      resume: resumeListening,
-    })
+    return (await import('./scriptedEngine')).createScriptedEngine()
   return (await import('./workerEngine')).createWorkerEngine()
+}
+
+/**
+ * Settings changed, here or on the settings page: voice turned on or off, the listening mode or
+ * the microphone changed.
+ */
+onVoiceSettingsChange(() => {
+  const before = snapshot.settings
+  const settings = voiceSettings()
+  if (settings === before) return
+  set({ settings })
+  if (!settings.speakMoves && before.speakMoves) stop()
+  if (settings.speakMoves && !before.speakMoves && pages.length > 0) start()
+  if (settings.listening !== before.listening) {
+    set({ muted: false, hearing: false })
+    syncDetector()
+  }
+  if (settings.microphone !== before.microphone && (microphone || snapshot.mic.kind === 'failed')) {
+    closeMicrophone()
+    if (pages.length > 0 && snapshot.engine.kind === 'ready') void ensureMicrophone()
+  }
+})
+
+/** Always listening rests while the board speaks, and a moment after. */
+let speechTail: ReturnType<typeof setTimeout> | undefined
+speaker.onSpeakingChange((speaking) => {
+  clearTimeout(speechTail)
+  if (speaking) pause(true)
+  else speechTail = setTimeout(() => pause(false), SPEECH_TAIL_MS)
+})
+
+function pause(paused: boolean) {
+  if (snapshot.paused === paused) return
+  set({ paused, hearing: false })
+  syncDetector()
 }
 
 /**
@@ -119,17 +149,15 @@ async function createSpeechEngine(): Promise<SpeechEngine> {
  * answers; after that the models load from the browser's cache at once.
  */
 export function turnOn(): void {
-  if (!snapshot.settings.noticeSeen) {
+  if (!snapshot.settings.speechModelAccepted) {
     set({ engine: { kind: 'notice' } })
     return
   }
-  setSettings({ on: true })
-  start()
+  setVoiceSettings({ speakMoves: true })
 }
 
 export function acceptNotice(): void {
-  setSettings({ on: true, noticeSeen: true })
-  start()
+  setVoiceSettings({ speakMoves: true, speechModelAccepted: true })
 }
 
 export function dismissNotice(): void {
@@ -137,26 +165,11 @@ export function dismissNotice(): void {
 }
 
 export function turnOff(): void {
-  setSettings({ on: false })
-  closeMicrophone()
-  engine?.dispose()
-  engine = undefined
-  engineLoad = undefined
-  set({ engine: { kind: 'off' }, holding: false, hearing: false, transcribing: false })
+  setVoiceSettings({ speakMoves: false })
 }
 
-export function setMode(mode: VoiceMode): void {
-  setSettings({ mode })
-  set({ muted: false, hearing: false })
-  syncDetector()
-}
-
-export function setDevice(deviceId: string | undefined): void {
-  setSettings({ ...(deviceId ? { deviceId } : { deviceId: undefined }) })
-  if (microphone || snapshot.mic.kind === 'failed') {
-    closeMicrophone()
-    void ensureMicrophone()
-  }
+export function setListening(listening: ListeningMode): void {
+  setVoiceSettings({ listening })
 }
 
 /** Always listening: the mic button stops and starts it. */
@@ -166,20 +179,12 @@ export function toggleMuted(): void {
   syncDetector()
 }
 
-/**
- * Pauses always listening from outside, e.g. while the board reads a move aloud: the listener
- * would otherwise hear it. Nothing heard while paused is acted on; push to talk still works.
- */
-export function pauseListening(): void {
-  if (snapshot.paused) return
-  set({ paused: true, hearing: false })
-  syncDetector()
-}
-
-export function resumeListening(): void {
-  if (!snapshot.paused) return
-  set({ paused: false })
-  syncDetector()
+function stop() {
+  closeMicrophone()
+  engine?.dispose()
+  engine = undefined
+  engineLoad = undefined
+  set({ engine: { kind: 'off' }, holding: false, hearing: false, transcribing: false })
 }
 
 /** A page that takes voice. While one is shown, the microphone is open (once voice is ready). */
@@ -187,7 +192,7 @@ export function attachPage(onText: TranscriptHandler, onNote: NoteHandler): () =
   const entry = { onText, onNote }
   pages.push(entry)
   clearTimeout(closeTimer)
-  if (snapshot.settings.on && !engine) start()
+  if (snapshot.settings.speakMoves && !engine) start()
   else if (snapshot.engine.kind === 'ready') void ensureMicrophone()
   return () => {
     pages.splice(pages.indexOf(entry), 1)
@@ -237,7 +242,7 @@ function ensureMicrophone(): Promise<void> {
   micOpening ??= (async () => {
     set({ mic: { kind: 'opening' } })
     try {
-      const opened = await openMicrophone(snapshot.settings.deviceId, onAudio)
+      const opened = await openMicrophone(snapshot.settings.microphone ?? undefined, onAudio)
       if (pages.length === 0 || snapshot.engine.kind !== 'ready') {
         opened.stop()
         set({ mic: { kind: 'closed' } })
@@ -276,7 +281,7 @@ function closeMicrophone() {
 function listening(): boolean {
   const s = snapshot
   return (
-    s.settings.mode === 'listen' &&
+    s.settings.listening === 'always' &&
     !!microphone &&
     s.engine.kind === 'ready' &&
     !s.paused &&
@@ -287,7 +292,7 @@ function listening(): boolean {
 
 /** Creates, resets or closes the detector to match `listening()`. */
 function syncDetector() {
-  if (snapshot.settings.mode !== 'listen' || !engine || !microphone) {
+  if (snapshot.settings.listening !== 'always' || !engine || !microphone) {
     detector?.close()
     detector = undefined
     return
@@ -317,7 +322,7 @@ function onAudio(samples: Float32Array) {
 
 /** Push to talk: the key or button went down. */
 export function press(): void {
-  if (snapshot.engine.kind !== 'ready' || snapshot.settings.mode !== 'push') return
+  if (snapshot.engine.kind !== 'ready' || snapshot.settings.listening !== 'push') return
   if (snapshot.mic.kind === 'failed') {
     void ensureMicrophone()
     return
