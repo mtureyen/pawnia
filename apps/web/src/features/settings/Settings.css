@@ -184,7 +184,8 @@
 }
 
 /* An on/off switch. */
-.coach-settings .switch {
+.coach-settings .switch,
+.voice-settings .switch {
   position: relative;
   flex: none;
   width: 2.6rem;
@@ -194,16 +195,19 @@
   background: var(--border);
 }
 
-.coach-settings .switch[aria-checked='true'] {
+.coach-settings .switch[aria-checked='true'],
+.voice-settings .switch[aria-checked='true'] {
   background: var(--accent);
 }
 
-.coach-settings .switch:hover:not(:disabled) {
+.coach-settings .switch:hover:not(:disabled),
+.voice-settings .switch:hover:not(:disabled) {
   filter: brightness(1.1);
   background: var(--border);
 }
 
-.coach-settings .switch[aria-checked='true']:hover:not(:disabled) {
+.coach-settings .switch[aria-checked='true']:hover:not(:disabled),
+.voice-settings .switch[aria-checked='true']:hover:not(:disabled) {
   background: var(--accent);
 }
 
@@ -220,4 +224,105 @@
 
 .switch[aria-checked='true'] span {
   transform: translateX(1.15rem);
+}
+
+.voice-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.settings-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.voice-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.voice-switch > div {
+  flex: 1;
+}
+
+.voice-switch .settings-note {
+  margin-top: 0.15rem;
+}
+
+.voice-switch-off .settings-label {
+  color: var(--text-muted);
+}
+
+/* The bot game's own options, under it. */
+.voice-nested {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: -0.25rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--border);
+}
+
+.voice-settings .switch {
+  border: 0;
+  cursor: pointer;
+}
+
+.voice-settings .switch:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.voice-settings select {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.voice-settings input[type='range'] {
+  width: 100%;
+  max-width: 20rem;
+  accent-color: var(--accent);
+}
+
+.voice-settings output {
+  margin-left: 0.35rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-settings .voice-try {
+  align-self: flex-start;
+  padding: 0.45rem 0.85rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.voice-settings .voice-try:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.voice-unavailable {
+  color: var(--danger);
 }
