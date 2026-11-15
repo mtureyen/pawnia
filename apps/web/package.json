@@ -14,6 +14,7 @@
     "openings:build": "bun scripts/build-openings.ts"
   },
   "dependencies": {
+    "@huggingface/transformers": "4.3.2",
     "@pawnia/analysis": "workspace:*",
     "@pawnia/chess": "workspace:*",
     "@pawnia/contracts": "workspace:*",
@@ -25,6 +26,7 @@
     "chessground": "^9.2.1",
     "dexie": "^4.4.7",
     "hono": "^4.13.14",
+    "onnxruntime-web": "1.31.0-dev.20260914-8d85527a0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
