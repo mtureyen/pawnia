@@ -9,6 +9,8 @@ import {
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
+import { useVoice } from '@/features/voice/useVoice'
+import { VoicePanel } from '@/features/voice/VoicePanel'
 import { Board } from '@/shared/board/Board'
 import { GameStatusBar } from '@/shared/game/GameStatusBar'
 import { MoveTree } from '@/shared/game/MoveTree'
@@ -81,6 +83,12 @@ export function PlayPage() {
     update,
     useMemo(() => ({ f: flip }), []),
   )
+  const voice = useVoice({
+    fen: view.fen,
+    noMove: view.dests.size === 0 ? 'The game is over.' : undefined,
+    onMove: playMove,
+    commands: { flip, takeBack: view.atStart ? undefined : () => update((g) => g.takeback()) },
+  })
   const material = useMaterial(view.current)
   const players = playerBars(headers, view, material)
 
@@ -97,6 +105,7 @@ export function PlayPage() {
           check={view.check}
           isPromotion={(from, to) => game.isPromotion(from, to)}
           onMove={playMove}
+          drawing={voice.drawing}
         />
         <PlayerBar {...players[orientation]} />
       </section>
@@ -111,6 +120,8 @@ export function PlayPage() {
             onSelect={(node) => update((g) => g.goTo(node))}
           />
         </div>
+
+        <VoicePanel voice={voice} />
 
         <div className="controls">
           <NavigationControls view={view} update={update} />
