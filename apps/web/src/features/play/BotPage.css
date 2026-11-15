@@ -221,8 +221,16 @@
   margin-left: auto;
 }
 
-.bot-thinking + .bot-clock {
+.bot-thinking + .bot-clock,
+.speaker-toggle + .bot-clock {
   margin-left: 0.5rem;
+}
+
+/* The mute switch, at the end of the user's own line. */
+.bot-you .speaker-toggle {
+  margin-left: auto;
+  padding: 0.3rem 0.45rem;
+  border-radius: 4px;
 }
 
 .bot-you {
