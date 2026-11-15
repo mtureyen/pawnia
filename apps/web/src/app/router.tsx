@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { parseAnalysisSearch } from '@/features/analysis/search'
 import { parseStatsSearch } from '@/features/stats/search'
+import { parseNotationSearch } from '@/features/training/notation/search'
 import { parseOpeningsSearch } from '@/features/training/openings/search'
 import { PlayPage } from '@/features/play/PlayPage'
 import { RootLayout } from './RootLayout'
@@ -97,6 +98,7 @@ const repertoireRoute = createRoute({
 const notationRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/training/notation',
+  validateSearch: parseNotationSearch,
   component: lazyRouteComponent(
     () => import('@/features/training/notation/NotationPage'),
     'NotationPage',
