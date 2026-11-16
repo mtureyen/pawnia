@@ -282,6 +282,7 @@ describe('api', () => {
       '/coach',
       '/coach/comments',
       '/coach/messages',
+      '/coach/spoken-moves',
       '/coach/tries',
       '/coach/walkthroughs',
       '/engine',
@@ -1599,6 +1600,51 @@ describe('coach routes', () => {
       expect((await post(target, { ...move, verdict: 'best' })).status).toBe(400)
       expect((await post(target, { ...move, san: undefined })).status).toBe(400)
       expect((await post(target, { ...move, agent: 'gpt' })).status).toBe(404)
+    })
+
+    describe('moves said in free words', () => {
+      /** The knight on e3 can take the bishop on d5. */
+      const fen = '4k3/8/8/3b4/8/4N3/8/4K3 w - - 0 1'
+      const read = (target: typeof app, body: unknown) =>
+        target.request('/api/v1/coach/spoken-moves', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+
+      it('gives the legal move the coach reads, from the words, pieces and moves alone', async () => {
+        const model = scriptedClient([{ text: '{"move": "Nxd5"}' }])
+        const res = await read(appWith(model.client), {
+          fen,
+          said: 'take the bishop with my knight',
+        })
+        expect(res.status).toBe(200)
+        expect(await res.json()).toEqual({ move: { from: 'e3', to: 'd5', san: 'Nxd5' } })
+        expect(model.requests).toHaveLength(1)
+        expect(model.requests[0]!.tools).toEqual([])
+        const sent = JSON.stringify(model.requests[0]!.messages)
+        expect(sent).toContain('take the bishop with my knight')
+        expect(sent).toContain('knight e3 takes the bishop on d5')
+        expect(sent).toContain('Bd5')
+      })
+
+      it('gives null when the coach can’t tell, and never a move that isn’t legal', async () => {
+        const none = scriptedClient([{ text: '{"move": null}' }])
+        expect(await (await read(appWith(none.client), { fen, said: 'hmm' })).json()).toEqual({
+          move: null,
+        })
+        const illegal = scriptedClient([{ text: '{"move": "Qh5"}' }, { text: '{"move": "Qh5"}' }])
+        expect((await read(appWith(illegal.client), { fen, said: 'queen h5' })).status).toBe(502)
+      })
+
+      it('rejects a bad position, empty words and unknown agents', async () => {
+        const { client, requests } = scriptedClient([])
+        const target = appWith(client)
+        expect((await read(target, { fen: 'not a fen', said: 'e4' })).status).toBe(400)
+        expect((await read(target, { fen, said: '  ' })).status).toBe(400)
+        expect((await read(target, { fen, said: 'e4', agent: 'gpt' })).status).toBe(404)
+        expect(requests).toHaveLength(0)
+      })
     })
   })
 })

@@ -158,6 +158,61 @@ export const coachCommentRoute = createRoute({
   },
 })
 
+/** Something a player said that simple rules couldn't read as a move, for the coach to read. */
+export const CoachSpokenMoveRequestSchema = z
+  .object({
+    /** Which agent reads it; the first available one when left out. */
+    agent: z.string().max(50).optional(),
+    /** The position the player spoke in; they are the side to move. */
+    fen: z.string().max(100),
+    /** What the speech recogniser wrote down. */
+    said: z.string().trim().min(1).max(300),
+  })
+  .openapi('CoachSpokenMoveRequest')
+
+export type CoachSpokenMoveRequestBody = z.infer<typeof CoachSpokenMoveRequestSchema>
+
+export const CoachSpokenMoveSchema = z
+  .object({
+    /** The legal move the coach reads in it, or null when it can't tell. */
+    move: z
+      .object({
+        from: z.string().length(2),
+        to: z.string().length(2),
+        promotion: z.enum(['queen', 'rook', 'bishop', 'knight']).optional(),
+        san: z.string().openapi({ example: 'Nxd5' }),
+      })
+      .nullable(),
+  })
+  .openapi('CoachSpokenMove')
+
+export type CoachSpokenMoveBody = z.infer<typeof CoachSpokenMoveSchema>
+
+export const coachSpokenMoveRoute = createRoute({
+  method: 'post',
+  path: '/coach/spoken-moves',
+  tags: ['coach'],
+  summary: 'The legal move the coach reads in words a player said, if any',
+  description:
+    'One model turn with no tools and no conversation: the coach gets the words, the pieces and the legal moves, and answers with one of those moves or none. The caller asks the player before playing it.',
+  request: {
+    body: {
+      content: { 'application/json': { schema: CoachSpokenMoveRequestSchema } },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: 'The move, or null',
+      content: { 'application/json': { schema: CoachSpokenMoveSchema } },
+    },
+    400: problem('Invalid request or position'),
+    404: problem('No such agent'),
+    502: problem('The agent gave no usable answer'),
+    503: problem('The agent cannot answer now (e.g. no API key, model not running)'),
+  },
+})
+
 export const CoachWalkthroughRequestSchema = z
   .object({
     /** Which agent writes it; the first available one when left out. */

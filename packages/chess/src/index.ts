@@ -40,6 +40,7 @@ export {
 } from './domain/notation'
 export { sayMove } from './domain/sayMove'
 export {
+  legalSpokenMoves,
   readSpokenMove,
   SPOKEN_COMMANDS,
   type SpokenCommand,

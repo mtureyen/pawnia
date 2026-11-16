@@ -69,4 +69,11 @@ export {
   type SummaryTally,
 } from './domain/playerSummary'
 export { writePlayerSummary } from './usecases/writePlayerSummary'
+export {
+  parseSpokenMove,
+  SPOKEN_MOVE_PROMPT,
+  spokenMoveText,
+  type SpokenMoveFacts,
+} from './domain/spokenMove'
+export { readSpokenMoveWithCoach } from './usecases/readSpokenMove'
 export { CoachCancelledError, MAX_TOOL_ROUNDS, runToolLoop } from './usecases/runToolLoop'
