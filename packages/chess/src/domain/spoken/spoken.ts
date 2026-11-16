@@ -132,6 +132,15 @@ export function readSpokenMove(fen: string, transcript: string): SpokenResult {
   return { kind: 'ambiguous', moves: moves.map((fit) => spoken(fit.move)), heard }
 }
 
+/**
+ * Every legal move in the position with its SAN, in the order `readSpokenMove` weighs them: what
+ * a reader of free words (the coach) chooses from. Throws `InvalidPositionError` on a bad FEN.
+ */
+export function legalSpokenMoves(fen: string): SpokenMove[] {
+  const pos = positionFromFen(fen)
+  return legalMovesOf(pos).map((move) => ({ ...move, san: sanOf(pos, move) }))
+}
+
 function commandOf(words: readonly string[]): SpokenCommand | undefined {
   const phrase = words.filter((word) => !COMMAND_FILLER.has(word)).join(' ')
   if (!phrase) return undefined

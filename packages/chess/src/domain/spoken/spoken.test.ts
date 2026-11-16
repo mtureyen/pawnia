@@ -2,7 +2,7 @@ import { INITIAL_FEN } from 'chessops/fen'
 import { describe, expect, it } from 'vitest'
 import { createGame, InvalidPositionError } from '../game'
 import { parseSanParts } from '../notation'
-import { readSpokenMove, SPOKEN_COMMANDS, type SpokenCommand } from './spoken'
+import { legalSpokenMoves, readSpokenMove, SPOKEN_COMMANDS, type SpokenCommand } from './spoken'
 
 function after(moves: string, fen = INITIAL_FEN): string {
   const game = createGame(fen)
@@ -595,5 +595,19 @@ describe('readSpokenMove: every legal move, said plainly, comes back as itself',
       if (!pawnOnB) expect(read(fen, san), san).toBe(`move ${san}`)
       expect(read(fen, spoken(san)), spoken(san)).toBe(`move ${san}`)
     }
+  })
+})
+
+describe('legalSpokenMoves', () => {
+  it('lists every legal move with its SAN', () => {
+    const moves = legalSpokenMoves(START)
+    expect(moves).toHaveLength(20)
+    expect(moves).toContainEqual({ from: 'g1', to: 'f3', san: 'Nf3' })
+    expect(legalSpokenMoves(PROMOTE).map((m) => m.san)).toContain('exd8=N')
+    expect(legalSpokenMoves(CASTLE_EITHER_WHITE)).toContainEqual({
+      from: 'e1',
+      to: 'g1',
+      san: 'O-O',
+    })
   })
 })

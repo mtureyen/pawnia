@@ -4,6 +4,7 @@ import {
   coachAgentsRoute,
   coachCommentRoute,
   coachQuestionRoute,
+  coachSpokenMoveRoute,
   coachTryRoute,
   coachWalkthroughRoute,
   type CoachEventBody,
@@ -13,6 +14,7 @@ import {
   NoStoredReviewError,
   type WalkthroughService,
 } from '../../adapters/coach/walkthroughService'
+import { SpokenMoveReader, spokenMoveFacts } from '../../adapters/coach/spokenMoves'
 import { streamSSE } from 'hono/streaming'
 import { problem } from '../../http/problem'
 import { createRouter } from '../../http/router'
@@ -47,6 +49,7 @@ export function coachRoutes({
   coach: CoachDirectory
   walkthroughs: WalkthroughService
 }) {
+  const spokenMoves = new SpokenMoveReader()
   return createRouter()
     .openapi(coachAgentsRoute, async (c) => {
       const list = await Promise.all(
@@ -103,6 +106,21 @@ export function coachRoutes({
         return c.json({ text }, 200)
       } catch (error) {
         return problem(c, 502, 'No comment', { detail: messageOf(error) })
+      }
+    })
+    .openapi(coachSpokenMoveRoute, async (c) => {
+      const { agent: wanted, fen, said } = c.req.valid('json')
+      try {
+        spokenMoveFacts(fen, said)
+      } catch (error) {
+        return problem(c, 400, 'Invalid position', { detail: messageOf(error) })
+      }
+      const found = await readyAgent(coach.agents(), wanted)
+      if (!found.agent) return problem(c, found.status, found.title, { detail: found.detail })
+      try {
+        return c.json(await spokenMoves.read(fen, said, found.agent, c.req.raw.signal), 200)
+      } catch (error) {
+        return problem(c, 502, 'No move read', { detail: messageOf(error) })
       }
     })
     .openapi(coachWalkthroughRoute, async (c) => {
