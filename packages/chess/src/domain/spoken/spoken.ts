@@ -54,8 +54,21 @@ export const SPOKEN_COMMANDS: Readonly<Record<SpokenCommand, readonly string[]>>
   resign: ['resign', 'give up'],
   // "All for a draw" is how Whisper wrote "offer a draw" in an Irish voice. Only the whole phrase
   // counts, and it holds no move, so no move can become a draw offer by it.
-  draw: ['draw', 'offer draw', 'draw offer', 'accept draw', 'all for draw'],
-  cancel: ['cancel', 'no', 'never mind', 'nevermind'],
+  // "Author a drawl" is the same in an Australian voice. A draw offer is always confirmed first.
+  draw: [
+    'draw',
+    'drawl',
+    'offer draw',
+    'offer drawl',
+    'draw offer',
+    'accept draw',
+    'all for draw',
+    'author draw',
+    'author drawl',
+  ],
+  // "Pencil" is how Whisper wrote "cancel" in an Australian voice; cancel only ever answers a
+  // question, so reading it wrongly costs nothing.
+  cancel: ['cancel', 'pencil', 'no', 'never mind', 'nevermind'],
   confirm: ['yes', 'yeah', 'confirm'],
 }
 

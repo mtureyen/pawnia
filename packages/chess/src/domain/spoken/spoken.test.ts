@@ -376,6 +376,11 @@ describe('readSpokenMove: mishearings', () => {
     [AFTER_E4, 'e six', 'e6'],
     [PROMOTE, 'e ate queen', 'e8=Q'],
     [TWO_ROOKS_ON_A_FILE, 'rock one a3', 'R1a3'],
+    // How Whisper wrote moves said by macOS voices.
+    [START, 'Evil', 'e4'],
+    [START, 'Evil.', 'e4'],
+    [CASTLE_EITHER_WHITE, 'Parcels queen side.', 'O-O-O'],
+    [CASTLE_EITHER_WHITE, 'parcel king side', 'O-O'],
   ])('%#: "%s" plays %s', (fen, transcript, san) => {
     expect(read(fen, transcript)).toBe(`move ${san}`)
   })
@@ -396,6 +401,21 @@ describe('readSpokenMove: mishearings', () => {
     expect(read(after('e4 e5'), 'bishup b5')).toBe('ambiguous Bb5')
   })
 
+  it('asks, never plays, when the file of the destination was swallowed ("rook f e1" → "rook f1")', () => {
+    for (const [heard, meant] of [
+      ['rook f1', 'Rfe1'],
+      ['Rook F1.', 'Rfd1'],
+      ['rook a1', 'Rad1'],
+    ] as const) {
+      const result = read(TWO_ROOKS_ON_A_RANK, heard)
+      expect(result).toMatch(/^ambiguous /)
+      expect(result.split(' ')).toContain(meant)
+    }
+    // A piece that can go to the square said still plays.
+    expect(read(ONE_ROOK, 'rook d1')).toBe('move Rd1')
+    expect(read(START, 'knight f3')).toBe('move Nf3')
+  })
+
   it('asks on an unknown word next to a move', () => {
     expect(read(START, 'banana e4')).toBe('ambiguous e4')
   })
@@ -410,6 +430,8 @@ describe('readSpokenMove: partial phrases', () => {
 
   it('plays "takes" alone only when there is exactly one capture', () => {
     expect(read(ONE_CAPTURE, 'takes')).toBe('move exd5')
+    // As Whisper wrote it once, framed like a heading.
+    expect(read(ONE_CAPTURE, '== Takes ==')).toBe('move exd5')
     expect(read(START, 'takes')).toBe('none')
   })
 })
@@ -435,6 +457,9 @@ describe('readSpokenMove: commands', () => {
     ['Offer draw.', 'draw'],
     ['accept the draw', 'draw'],
     ['All for a draw.', 'draw'],
+    ['Author a drawl.', 'draw'],
+    ['author a draw', 'draw'],
+    ['Pencil', 'cancel'],
     ['cancel', 'cancel'],
     ['No.', 'cancel'],
     ['never mind', 'cancel'],
