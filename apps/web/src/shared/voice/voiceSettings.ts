@@ -31,6 +31,11 @@ export interface VoiceSettings {
   listening: ListeningMode
   /** A microphone's `deviceId`; null for the browser's default. */
   microphone: string | null
+  /**
+   * When nothing fits what was said with push to talk, ask the coach which move was meant. Off by
+   * default: each time is a request to the coach (with the Claude API, a paid one).
+   */
+  askCoach: boolean
 }
 
 export type ListeningMode = 'push' | 'always'
@@ -49,6 +54,7 @@ export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
   speechModelAccepted: false,
   listening: 'push',
   microphone: null,
+  askCoach: false,
 }
 
 const SWITCHES = [
@@ -59,6 +65,7 @@ const SWITCHES = [
   'coachComments',
   'speakMoves',
   'speechModelAccepted',
+  'askCoach',
 ] as const
 
 /** Stored settings, with anything unknown (an old or edited value) back at the default. */

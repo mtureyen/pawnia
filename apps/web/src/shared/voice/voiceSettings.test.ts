@@ -22,6 +22,11 @@ describe('parseVoiceSettings', () => {
     })
   })
 
+  it('never asks the coach about a move until told to', () => {
+    expect(DEFAULT_VOICE_SETTINGS.askCoach).toBe(false)
+    expect(parseVoiceSettings({ askCoach: 'yes' }).askCoach).toBe(false)
+  })
+
   it('keeps what was stored', () => {
     const stored = {
       botGames: false,
@@ -35,6 +40,7 @@ describe('parseVoiceSettings', () => {
       speechModelAccepted: true,
       listening: 'always',
       microphone: 'a1b2c3',
+      askCoach: true,
     }
     expect(parseVoiceSettings(stored)).toEqual(stored)
   })

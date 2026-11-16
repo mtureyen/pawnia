@@ -34,6 +34,11 @@ export interface Decision {
   note: string
   /** The question still open afterwards (a `which` left unanswered stays). */
   question?: Question
+  /**
+   * Nothing fit what was said, no question was open and a move could be played: someone who reads
+   * free words (the coach) may still tell which move was meant.
+   */
+  unread?: true
 }
 
 const COMMAND_DONE: Record<PageCommand, string> = {
@@ -107,7 +112,8 @@ export function decide(transcript: string, context: VoiceContext, question?: Que
       return command(said)
     }
     case 'none':
-      return nothing('Not a move here.')
+      if (context.noMove || open) return nothing('Not a move here.')
+      return { ...nothing('Not a move here.'), unread: true }
   }
 
   function play(move: SpokenMove): Decision {
