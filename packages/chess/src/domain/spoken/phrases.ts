@@ -26,6 +26,8 @@ export interface Phrase {
 const BARE_SQUARE = 0.4
 /** "e d5" for exd5: the "takes" is dropped, which happens, but is also how a mishearing looks. */
 const PAWN_CAPTURE_WITHOUT_TAKES = 0.2
+/** A piece, its file and the destination's rank, the destination's file lost ("rook f1"). */
+const LOST_FILE = 0.4
 /** "Takes" alone: plays the one capture there is. */
 const TAKES_ALONE = 0.2
 /**
@@ -82,6 +84,9 @@ export function phrasesOf(move: MoveFacts): Phrase[] {
       if (victim) add(0, role, ...from, 'x', ...dest)
     }
     add(BARE_SQUARE, ...dest)
+    // "rook f e1" comes out of Whisper as "rook f1": the destination's file is swallowed after the
+    // file the piece comes from. Never played from that alone, only asked about.
+    if (file !== dest[0]) add(LOST_FILE, role, file, dest[1])
     if (victim) {
       add(0, 'x', ...dest)
       add(0, role, 'x') // "knight takes"

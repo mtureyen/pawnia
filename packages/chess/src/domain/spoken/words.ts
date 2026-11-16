@@ -139,6 +139,9 @@ const LEXICON: Record<string, Omit<Slot, 'word'>> = {
   eight: square('8'),
   ate: square('8', 0.2, 0.4),
 
+  // Whole squares Whisper writes as a word: "Evil" for "e4" in an Australian voice.
+  evil: entry(SKIP_UNKNOWN, ['e 4', 0.3]),
+
   // Pieces, plurals and possessives included ("bishop's" loses its apostrophe on the way in).
   pawn: piece('P'),
   pawns: piece('P'),
@@ -191,6 +194,9 @@ const LEXICON: Record<string, Omit<Slot, 'word'>> = {
   castles: entry(SKIP_SIGN, ['O', 0]),
   castling: entry(SKIP_SIGN, ['O', 0]),
   cassel: entry(SKIP_SIGN, ['O', 0.3]),
+  // "Parcels queen side": "castles" in an Australian voice.
+  parcels: entry(SKIP_UNKNOWN, ['O', 0.3]),
+  parcel: entry(SKIP_UNKNOWN, ['O', 0.3]),
   // A side named is as telling as a piece named: "castle long" must not castle short.
   short: entry(SKIP_PIECE, ['short', 0]),
   kingside: entry(SKIP_PIECE, ['short', 0]),
@@ -261,6 +267,8 @@ export function cleanWords(transcript: string): string[] {
   const text = ` ${transcript.toLowerCase()} `
     // Apostrophes join ("bishop's" → "bishops", "let's" → "lets") instead of splitting a word.
     .replace(/['’]/g, '')
+    // Whisper sometimes frames a short clip like a heading ("== Takes =="); one "=" is a promotion.
+    .replace(/={2,}/g, ' ')
     // Anything else that isn't a letter, digit or "=" separates words ("E4.", "e-4", "Nf3+",
     // "O-O" → "o o"). Spaces around each word let the patterns below match on " word ".
     .replace(/[^a-z0-9=]+/g, '  ')
