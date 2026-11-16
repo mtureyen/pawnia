@@ -2,7 +2,7 @@ import { gameLine } from '@pawnia/history'
 import { reviewRepositoryContract, sampleReview } from '@pawnia/history/testing'
 import { gameRepositoryContract, sampleGame } from '@pawnia/library/testing'
 import { sql } from 'drizzle-orm'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { openDatabase } from './database'
 import { PostgresGameHistory } from './gameHistory'
 import { PostgresGameRepository } from './gameRepository'
@@ -16,6 +16,11 @@ import { PostgresWalkthroughStore } from './walkthroughStore'
 // The same suites as every other adapter, on an in-memory Postgres (PGlite) with the migrations.
 // One database for the file (starting one takes a while), emptied before each test.
 const shared = openDatabase('pglite:memory')
+// Starting it once, with time to spare: on a busy CI runner (the web build alongside) it took
+// longer than a test hook's 10 s, and the first test of the file failed waiting for it.
+beforeAll(async () => {
+  await shared
+}, 60_000)
 async function fresh() {
   const { db } = await shared
   await db.execute(
