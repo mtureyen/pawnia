@@ -3,6 +3,8 @@ import {
   type CoachCommentBody,
   type CoachEventBody,
   type CoachQuestionBody,
+  type CoachSpokenMoveBody,
+  type CoachSpokenMoveRequestBody,
   type CoachTryBody,
   type CoachTryRequestBody,
   type CoachWalkthroughBody,
@@ -42,7 +44,6 @@ export class RemoteCoach {
     }
   }
 
-  /** A short comment on a move of a running game. Throws when there is none. */
   /** Judges a move tried at a moment of a reviewed game. */
   async tryMove(request: CoachTryRequestBody): Promise<CoachTryBody> {
     const res = await this.api.api.v1.coach.tries.$post({ json: request })
@@ -63,6 +64,20 @@ export class RemoteCoach {
     return (await res.json()) as CoachWalkthroughBody
   }
 
+  /** The legal move the coach reads in what the player said; null when it can't tell. */
+  async readSpokenMove(
+    request: CoachSpokenMoveRequestBody,
+    signal?: AbortSignal,
+  ): Promise<CoachSpokenMoveBody['move']> {
+    const res = await this.api.api.v1.coach['spoken-moves'].$post(
+      { json: request },
+      signal ? { init: { signal } } : undefined,
+    )
+    if (res.status !== 200) throw await failure(res)
+    return (await res.json()).move
+  }
+
+  /** A short comment on a move of a running game. Throws when there is none. */
   async comment(move: CoachCommentBody, signal?: AbortSignal): Promise<string> {
     const res = await this.api.api.v1.coach.comments.$post(
       { json: move },

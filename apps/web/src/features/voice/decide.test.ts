@@ -70,6 +70,21 @@ describe('decide', () => {
     expect(decision.heard).toBe('What a lovely day.')
   })
 
+  it('marks words nothing fits as unread, for the coach, only where a move could be played', () => {
+    expect(decide('take the bishop with my knight', context(START)).unread).toBe(true)
+    expect(decide('e4', context(START)).unread).toBeUndefined()
+    expect(decide('knight d2', context(TWO_KNIGHTS)).unread).toBeUndefined()
+    expect(decide('Flip the board.', context(START)).unread).toBeUndefined()
+    expect(decide('', context(START)).unread).toBeUndefined()
+    const notYours = context(START, { noMove: 'It’s not your turn.' })
+    expect(decide('take the bishop with my knight', notYours).unread).toBeUndefined()
+    // An open question is answered, not read anew.
+    const which = whichOf('knight d2', TWO_KNIGHTS)
+    expect(decide('the left one', context(TWO_KNIGHTS), which).unread).toBeUndefined()
+    const confirm = decide('I resign.', context(START)).question
+    expect(decide('maybe later', context(START), confirm).unread).toBeUndefined()
+  })
+
   it('drops what Whisper writes for silence', () => {
     expect(decide('[BLANK_AUDIO]', context(START)).note).toBe('Heard nothing.')
     expect(decide(' 4, 4, 4, 4, 4, 4', context(START)).note).toBe('Heard nothing.')

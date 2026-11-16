@@ -1,6 +1,8 @@
-import type { Move, SpokenMove } from '@pawnia/chess'
+import type { Move, SpokenMove, SquareName } from '@pawnia/chess'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useServices } from '@/app/servicesContext'
 import type { BoardDrawing } from '@/shared/board/Board'
+import { voiceSettings } from '@/shared/voice/voiceStore'
 import { decide, type Decision, type PageCommand, type Question } from './decide'
 import { attachPage, useVoiceSession, type VoiceSnapshot } from './session'
 
@@ -34,9 +36,15 @@ export interface VoiceView {
 /**
  * Voice input on a page with a board: hears transcripts from the session, decides what they mean
  * in the page's position and carries it out through the page's own callbacks.
+ *
+ * With Settings → Voice's "Ask the coach" on, words nothing fits (said with push to talk, never
+ * while always listening, which hears the whole room) go to the coach, and the move it reads is
+ * asked about like any unclear move: it is never played without a "yes" or a click.
  */
 export function useVoice(target: VoiceTarget): VoiceView {
   const session = useVoiceSession()
+  const { coach } = useServices()
+  const asking = useRef<AbortController>(undefined)
   const latest = useRef(target)
   useLayoutEffect(() => {
     latest.current = target
@@ -75,14 +83,64 @@ export function useVoice(target: VoiceTarget): VoiceView {
     return { fen: page.fen, commands, ...(page.noMove && { noMove: page.noMove }) }
   }, [])
 
-  useEffect(
-    () =>
-      attachPage(
-        (text, via) => apply(decide(text, contextOf(), questionRef.current), via),
-        (note) => setShown((s) => ({ ...s, heard: undefined, note })),
-      ),
-    [apply, contextOf],
+  const stopAsking = useCallback(() => {
+    asking.current?.abort()
+    asking.current = undefined
+  }, [])
+
+  const askCoach = useCallback(
+    (heard: string, fen: string) => {
+      const abort = new AbortController()
+      asking.current = abort
+      setShown((s) => ({ ...s, note: 'Not a move here. Asking the coach…' }))
+      // Only an answer for the position still on the board, and for the last thing said, counts.
+      const current = () => !abort.signal.aborted && latest.current.fen === fen
+      coach
+        .readSpokenMove({ fen, said: heard }, abort.signal)
+        .then((move) => {
+          if (!current()) return
+          if (!move) {
+            setShown((s) => ({ ...s, note: 'Not a move here, and the coach can’t tell either.' }))
+            return
+          }
+          const spoken: SpokenMove = {
+            from: move.from as SquareName,
+            to: move.to as SquareName,
+            san: move.san,
+            ...(move.promotion && { promotion: move.promotion }),
+          }
+          const question: Question = { kind: 'which', moves: [spoken], fen }
+          const note = `The coach reads ${move.san}. Say “yes”, or click it.`
+          apply({ outcome: { kind: 'ask', question }, heard, note, question }, 'push')
+        })
+        .catch(() => {
+          if (current())
+            setShown((s) => ({ ...s, note: 'Not a move here, and the coach couldn’t be asked.' }))
+        })
+        .finally(() => {
+          if (asking.current === abort) asking.current = undefined
+        })
+    },
+    [apply, coach],
   )
+
+  useEffect(() => {
+    const detach = attachPage(
+      (text, via) => {
+        stopAsking()
+        const context = contextOf()
+        const decision = decide(text, context, questionRef.current)
+        apply(decision, via)
+        if (decision.unread && via === 'push' && voiceSettings().askCoach)
+          askCoach(decision.heard, context.fen)
+      },
+      (note) => setShown((s) => ({ ...s, heard: undefined, note })),
+    )
+    return () => {
+      detach()
+      stopAsking()
+    }
+  }, [apply, askCoach, contextOf, stopAsking])
 
   // A question about moves holds only in the position it was asked in.
   const question =
@@ -109,6 +167,7 @@ export function useVoice(target: VoiceTarget): VoiceView {
     ...(question && { question }),
     ...(drawing && { drawing }),
     pick: (move) => {
+      stopAsking()
       const context = contextOf()
       if (context.noMove) {
         apply({ outcome: { kind: 'nothing' }, heard: '', note: context.noMove }, 'click')
@@ -117,6 +176,7 @@ export function useVoice(target: VoiceTarget): VoiceView {
       apply({ outcome: { kind: 'play', move }, heard: '', note: `Played ${move.san}.` }, 'click')
     },
     answer: (yes) => {
+      stopAsking()
       const open = questionRef.current
       if (open?.kind !== 'confirm') return
       if (yes) {
@@ -130,6 +190,9 @@ export function useVoice(target: VoiceTarget): VoiceView {
         )
       } else apply({ outcome: { kind: 'nothing' }, heard: '', note: 'Cancelled.' }, 'click')
     },
-    dismiss: () => apply({ outcome: { kind: 'nothing' }, heard: '', note: 'Cancelled.' }, 'click'),
+    dismiss: () => {
+      stopAsking()
+      apply({ outcome: { kind: 'nothing' }, heard: '', note: 'Cancelled.' }, 'click')
+    },
   }
 }

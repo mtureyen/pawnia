@@ -217,6 +217,76 @@ test.describe('with the microphone allowed', () => {
     await expect(moves(page).nth(1)).toHaveAttribute('data-san', 'e5')
   })
 
+  test('the coach reads free words only once turned on, and its move waits for a yes', async ({
+    page,
+  }) => {
+    const asked: unknown[] = []
+    await page.route('**/api/v1/coach/spoken-moves', (route) => {
+      asked.push(route.request().postDataJSON())
+      return route.fulfill({ json: { move: { from: 'g1', to: 'f3', san: 'Nf3' } } })
+    })
+    await page.goto('/')
+    await turnOnVoice(page)
+    // Off by default: nothing goes to the coach.
+    await say(page, 'Jump my horse out to the right.')
+    await expect(heard(page)).toContainText('Not a move here.')
+    await page.waitForTimeout(300)
+    expect(asked).toHaveLength(0)
+
+    await page.goto('/settings?tab=voice')
+    const ask = page
+      .getByRole('region', { name: 'Speaking moves' })
+      .getByRole('switch', { name: 'Ask the coach when a move isn’t understood' })
+    await expect(ask).toHaveAttribute('aria-checked', 'false')
+    await ask.click()
+    await expect(ask).toHaveAttribute('aria-checked', 'true')
+
+    await page.goto('/')
+    await expect(state(page)).toHaveText('Hold Space and say a move')
+    await say(page, 'Jump my horse out to the right.')
+    await expect(heard(page)).toContainText('The coach reads Nf3.')
+    expect(asked).toEqual([
+      {
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        said: 'Jump my horse out to the right.',
+      },
+    ])
+    const question = voice(page).getByRole('group', { name: 'Which move' })
+    await expect(question).toContainText('Did you mean')
+    await expect(question.getByRole('button', { name: /Nf3/ })).toBeVisible()
+    await expect(moves(page)).toHaveCount(0)
+    await say(page, 'Yes.')
+    await expect(moves(page).first()).toHaveAttribute('data-san', 'Nf3')
+  })
+
+  test('the coach is never asked while always listening, and may not know either', async ({
+    page,
+  }) => {
+    const asked: unknown[] = []
+    await page.route('**/api/v1/coach/spoken-moves', (route) => {
+      asked.push(route.request().postDataJSON())
+      return route.fulfill({ json: { move: null } })
+    })
+    await storeVoiceSettings(page, { askCoach: true, listening: 'always' })
+    await page.goto('/')
+    await expect(state(page)).toHaveText('Listening')
+    await page.evaluate(() => window.pawniaVoiceScript!.utter('I think I left the oven on.'))
+    await expect(heard(page)).toContainText('Not a move here.')
+    await page.waitForTimeout(300)
+    expect(asked).toHaveLength(0)
+
+    await page.getByRole('button', { name: 'Voice settings' }).click()
+    await voice(page)
+      .getByRole('radio', { name: /Push to talk/ })
+      .check()
+    // Space on the focused radio would stay with the radio.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+    await say(page, 'Move the horsey.')
+    await expect(heard(page)).toContainText('the coach can’t tell either')
+    expect(asked).toHaveLength(1)
+    await expect(moves(page)).toHaveCount(0)
+  })
+
   test('Settings → Voice turns speaking moves on and sets how it listens', async ({ page }) => {
     await page.goto('/settings?tab=voice')
     const card = page.getByRole('region', { name: 'Speaking moves' })

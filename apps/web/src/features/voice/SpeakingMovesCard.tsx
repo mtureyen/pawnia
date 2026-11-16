@@ -66,6 +66,30 @@ export function SpeakingMovesCard() {
         </button>
       </div>
       <ListeningChoice inSettings />
+      <div className="voice-switch">
+        <div>
+          <span className="settings-label" id={`${id}-coach-label`}>
+            Ask the coach when a move isn’t understood
+          </span>
+          <p className="settings-note" id={`${id}-coach-note`}>
+            For moves said in your own words, like “take the bishop with my knight”. With push to
+            talk only. The words and the position go to your coach, one request each time (with the
+            Claude API a paid one). The move the coach reads is never played until you say “yes” or
+            click it.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          className="switch"
+          aria-checked={settings.askCoach}
+          aria-labelledby={`${id}-coach-label`}
+          aria-describedby={`${id}-coach-note`}
+          onClick={() => setVoiceSettings({ askCoach: !settings.askCoach })}
+        >
+          <span />
+        </button>
+      </div>
       <label className="settings-field">
         <span className="settings-label">Microphone</span>
         <select

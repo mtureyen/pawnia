@@ -129,6 +129,8 @@ export interface Services {
     comment: RemoteCoach['comment']
     walkthrough: RemoteCoach['walkthrough']
     tryMove: RemoteCoach['tryMove']
+    /** The legal move the coach reads in words said, or null; asked only if the user turned it on. */
+    readSpokenMove: RemoteCoach['readSpokenMove']
   }
   history: {
     /**
@@ -275,6 +277,7 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
       comment: (move, signal) => remoteCoach.comment(move, signal),
       walkthrough: (request) => remoteCoach.walkthrough(request),
       tryMove: (request) => remoteCoach.tryMove(request),
+      readSpokenMove: (request, signal) => remoteCoach.readSpokenMove(request, signal),
     },
     profile: {
       load: async () => {
