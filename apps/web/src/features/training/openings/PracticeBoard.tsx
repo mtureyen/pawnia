@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useServices } from '@/app/servicesContext'
+import { useVoice } from '@/features/voice/useVoice'
+import { VoicePanel } from '@/features/voice/VoicePanel'
 import { Board } from '@/shared/board/Board'
 import { useGame } from '@/shared/game/useGame'
 import { lastMove } from '@/features/stats/format'
@@ -201,6 +203,18 @@ export function PracticeBoard({ setup, onExit }: { setup: PracticeSetup; onExit:
   }
 
   const yourTurn = view.turn === color && !busy && !done
+  const voice = useVoice({
+    fen: view.fen,
+    ...(!yourTurn && {
+      noMove: done
+        ? 'The practice is over.'
+        : busy
+          ? 'Still checking your last move.'
+          : 'It’s your opponent’s move.',
+    }),
+    onMove: (move) => void judge(move),
+    commands: {},
+  })
   return (
     <div className="layout opening-practice">
       <section className="board-column">
@@ -213,6 +227,7 @@ export function PracticeBoard({ setup, onExit }: { setup: PracticeSetup; onExit:
           check={view.check}
           isPromotion={(from, to) => game.isPromotion(from, to)}
           onMove={(move) => void judge(move)}
+          {...(voice.drawing && { drawing: voice.drawing })}
         />
       </section>
       <aside className="panel training-panel" aria-label="Practice">
@@ -245,6 +260,7 @@ export function PracticeBoard({ setup, onExit }: { setup: PracticeSetup; onExit:
             </p>
           )}
         </div>
+        <VoicePanel voice={voice} />
         <div className="training-actions">
           {wrong && !done && (
             <button type="button" onClick={showAnswer} disabled={busy}>
