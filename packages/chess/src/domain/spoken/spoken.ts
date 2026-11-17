@@ -12,7 +12,7 @@ import { makeSan } from 'chessops/san'
 import type { Role } from 'chessops/types'
 import { parseSquare } from 'chessops/util'
 import { legalMovesOf, positionFromFen } from '../game'
-import type { Move } from '../types'
+import type { Move, SquareName } from '../types'
 import { phrasesOf, type MoveFacts } from './phrases'
 import { cleanWords, slotsOf, type RoleTok, type Slot, type Tok } from './words'
 
@@ -130,6 +130,31 @@ export function readSpokenMove(fen: string, transcript: string): SpokenResult {
     return { kind: 'move', move: spoken(best.move), heard }
   const moves = ranked.filter((fit) => fit.cost - best.cost <= SHOW_WITHIN + EPSILON)
   return { kind: 'ambiguous', moves: moves.map((fit) => spoken(fit.move)), heard }
+}
+
+const FILES = 'abcdefgh'
+const RANKS = '12345678'
+
+/**
+ * Reads a transcript as a square named ("e4", "e four", "bee 4", "the square is e4"), for drills
+ * that ask for a square rather than a move. Undefined unless one square fits clearly, by the same
+ * costs and thresholds as a move.
+ */
+export function readSpokenSquare(transcript: string): SquareName | undefined {
+  const slots = slotsOf(cleanWords(transcript))
+  if (slots.length === 0) return undefined
+  const ranked = [...FILES]
+    .flatMap((file) =>
+      [...RANKS].map((rank) => ({
+        square: `${file}${rank}` as SquareName,
+        cost: alignCost(slots, [file as Tok, rank as Tok]),
+      })),
+    )
+    .sort((a, b) => a.cost - b.cost)
+  const [best, next] = ranked
+  if (!best || best.cost > PLAY_AT_MOST + EPSILON) return undefined
+  if (next && next.cost - best.cost < CLEAR_LEAD - EPSILON) return undefined
+  return best.square
 }
 
 /**

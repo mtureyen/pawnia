@@ -2,7 +2,13 @@ import { INITIAL_FEN } from 'chessops/fen'
 import { describe, expect, it } from 'vitest'
 import { createGame, InvalidPositionError } from '../game'
 import { parseSanParts } from '../notation'
-import { legalSpokenMoves, readSpokenMove, SPOKEN_COMMANDS, type SpokenCommand } from './spoken'
+import {
+  legalSpokenMoves,
+  readSpokenMove,
+  readSpokenSquare,
+  SPOKEN_COMMANDS,
+  type SpokenCommand,
+} from './spoken'
 
 function after(moves: string, fen = INITIAL_FEN): string {
   const game = createGame(fen)
@@ -610,4 +616,31 @@ describe('legalSpokenMoves', () => {
       san: 'O-O',
     })
   })
+})
+
+describe('readSpokenSquare', () => {
+  it.each([
+    ['e4', 'e4'],
+    ['E4.', 'e4'],
+    ['e four', 'e4'],
+    ['Evil', 'e4'],
+    ['bee four', 'b4'],
+    ['b4', 'b4'],
+    ['delta 5', 'd5'],
+    ['a one', 'a1'],
+    ['A1.', 'a1'],
+    ['h eight', 'h8'],
+    ['The square is c6.', 'c6'],
+    ['It’s g7.', 'g7'],
+    ['Um, f2.', 'f2'],
+  ])('%#: "%s" is %s', (transcript, square) => {
+    expect(readSpokenSquare(transcript)).toBe(square)
+  })
+
+  it.each([[''], ['hello'], ['e'], ['four'], ['e4 d5'], ['knight f3'], ['e9'], ['Thank you.']])(
+    '%#: "%s" is no square',
+    (transcript) => {
+      expect(readSpokenSquare(transcript)).toBeUndefined()
+    },
+  )
 })
