@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { recordSpeech } from './speech'
+import { heard, moves, say, state, storeVoiceSettings, turnOnVoice, voice } from './voiceScript'
 
 // Voice input with the scripted engine of the E2E build (VITE_PAWNIA_VOICE=scripted): no model is
 // downloaded; `window.pawniaVoiceScript` says what was "heard". The microphone is Chrome's fake
@@ -10,54 +11,6 @@ test.use({
     args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
   },
 })
-
-/** What `scriptedEngine.ts` puts on the page. */
-declare global {
-  interface Window {
-    pawniaVoiceScript?: {
-      next(text: string): void
-      utter(text: string): void
-      transcriptions: number
-    }
-  }
-}
-
-const moves = (page: Page) => page.locator('.move-tree [data-san]')
-const voice = (page: Page) => page.getByRole('region', { name: 'Voice' })
-const heard = (page: Page) => page.getByTestId('voice-heard')
-const state = (page: Page) => page.getByTestId('voice-state')
-
-/** Turns voice on as a first-time user does: the notice, the download, the microphone. */
-async function turnOnVoice(page: Page) {
-  await page.getByRole('button', { name: 'Turn on voice input' }).click()
-  const notice = page.getByRole('dialog', { name: 'Voice input' })
-  await expect(notice).toContainText('runs on this computer')
-  await expect(notice).toContainText(/about \d+ MB once/)
-  await notice.getByRole('button', { name: 'Download and turn on' }).click()
-  await expect(state(page)).toHaveText('Hold Space and say a move')
-}
-
-/** Push to talk with the space bar: `text` is what the scripted engine hears. */
-async function say(page: Page, text: string) {
-  await page.evaluate((t) => window.pawniaVoiceScript!.next(t), text)
-  await page.keyboard.down(' ')
-  await expect(page.getByRole('button', { name: 'Hold to talk' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  )
-  await page.waitForTimeout(700)
-  await page.keyboard.up(' ')
-}
-
-/** Voice settings as Settings → Voice leaves them, with speaking moves on and agreed to. */
-async function storeVoiceSettings(page: Page, settings: Record<string, unknown>) {
-  await page.addInitScript(
-    (value) => {
-      localStorage.setItem('pawnia.voice', JSON.stringify(value))
-    },
-    { speakMoves: true, speechModelAccepted: true, ...settings },
-  )
-}
 
 async function startBotGame(page: Page) {
   await page.goto('/bot')
