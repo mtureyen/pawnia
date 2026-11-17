@@ -27,6 +27,10 @@ describe('parseVoiceSettings', () => {
     expect(parseVoiceSettings({ askCoach: 'yes' }).askCoach).toBe(false)
   })
 
+  it('shows the pieces until blindfold is chosen', () => {
+    expect(DEFAULT_VOICE_SETTINGS.blindfold).toBe(false)
+  })
+
   it('keeps what was stored', () => {
     const stored = {
       botGames: false,
@@ -41,6 +45,7 @@ describe('parseVoiceSettings', () => {
       listening: 'always',
       microphone: 'a1b2c3',
       askCoach: true,
+      blindfold: true,
     }
     expect(parseVoiceSettings(stored)).toEqual(stored)
   })

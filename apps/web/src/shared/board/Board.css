@@ -5,6 +5,11 @@
   user-select: none;
 }
 
+/* Blindfold: the pieces stay on the board (and can be dragged by heart), unseen. */
+.board-blindfold .cg-wrap piece {
+  visibility: hidden;
+}
+
 .board-host {
   width: 100%;
   height: 100%;

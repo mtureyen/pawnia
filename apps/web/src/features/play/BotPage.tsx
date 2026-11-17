@@ -35,6 +35,7 @@ import { NavigationControls } from '@/shared/game/NavigationControls'
 import { useMaterial } from '@/shared/game/players'
 import { useGameKeyboard } from '@/shared/game/useGameKeyboard'
 import { SpeakerToggle } from '@/shared/voice/SpeakerToggle'
+import { setVoiceSettings, useVoiceSettings } from '@/shared/voice/voiceStore'
 import { ClockFace } from './ClockFace'
 import { coachCommentsOn, rememberCoachComments } from './coachComments'
 import { useBotGame } from './useBotGame'
@@ -361,6 +362,10 @@ function BotGame({
   })
   const material = useMaterial(view.current)
   const savedId = bot.save.status === 'saved' ? bot.save.game.id : undefined
+  const { blindfold, botGames: botMovesAloud } = useVoiceSettings()
+  const [peeking, setPeeking] = useState(false)
+  // Blindfold lasts the game; the finished game is looked at with its pieces.
+  const blind = blindfold && !bot.over
 
   return (
     <div className="layout">
@@ -375,6 +380,7 @@ function BotGame({
           isPromotion={(from, to) => game.isPromotion(from, to)}
           onMove={bot.move}
           drawing={voice.drawing ?? shownDrawing}
+          blindfold={blind && !peeking}
         />
       </section>
 
@@ -507,6 +513,47 @@ function BotGame({
           </div>
           <TakenPieces material={material} color={setup.color} />
         </div>
+
+        {!bot.over && (
+          <div className="bot-blindfold">
+            <div className="bot-blindfold-buttons">
+              <button
+                type="button"
+                aria-pressed={blindfold}
+                title="Hide the pieces: play from the moves you hear"
+                onClick={() => setVoiceSettings({ blindfold: !blindfold })}
+              >
+                Blindfold
+              </button>
+              {blind && (
+                <button
+                  type="button"
+                  aria-pressed={peeking}
+                  title="Hold to see the pieces"
+                  onPointerDown={(e) => {
+                    if (e.button !== 0) return
+                    e.currentTarget.setPointerCapture(e.pointerId)
+                    setPeeking(true)
+                  }}
+                  onPointerUp={() => setPeeking(false)}
+                  onPointerCancel={() => setPeeking(false)}
+                  onKeyDown={(e) => e.key === 'Enter' && setPeeking(true)}
+                  onKeyUp={(e) => e.key === 'Enter' && setPeeking(false)}
+                >
+                  Peek
+                </button>
+              )}
+            </div>
+            {blind && (
+              <p className="bot-blindfold-note" role="status">
+                The pieces are hidden until the game is over.{' '}
+                {botMovesAloud
+                  ? 'The bot’s moves are read aloud.'
+                  : 'Turn on the speaker by “You” to hear the bot’s moves.'}
+              </p>
+            )}
+          </div>
+        )}
 
         <VoicePanel voice={voice} />
 
