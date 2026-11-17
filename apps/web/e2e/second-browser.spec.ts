@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { expect, test, type Browser, type Page } from './test'
 
 // The E2E API serves recorded responses: lichess "DrNykterstein" has 2 games, against
 // Night-King96 and oasenegre.

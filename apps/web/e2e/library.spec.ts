@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 
 // The E2E API serves recorded responses: lichess "DrNykterstein" (2 games), chess.com "hikaru" (5 games).
 

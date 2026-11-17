@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 
 /** A server whose review run advances each time it is asked; nothing is really reviewed. */
 async function scriptedQueue(page: Page) {

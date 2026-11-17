@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 import { boardDriver } from './board'
 
 // Tall enough for the whole board with a player bar above and below it.

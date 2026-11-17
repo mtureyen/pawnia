@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 import { boardDriver } from './board'
 
 test('a finished bot game and its review also end up in the server’s history', async ({ page }) => {

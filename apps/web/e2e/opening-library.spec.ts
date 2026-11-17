@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 import { boardDriver } from './board'
 
 const GREEN = '#5f9e2f'

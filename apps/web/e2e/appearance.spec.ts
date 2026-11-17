@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 
 test('a8 and h1 are light squares, a1 and h8 dark', async ({ page }) => {
   await page.goto('/')

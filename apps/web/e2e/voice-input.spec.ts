@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 import { recordSpeech } from './speech'
 import { heard, moves, say, state, storeVoiceSettings, turnOnVoice, voice } from './voiceScript'
 

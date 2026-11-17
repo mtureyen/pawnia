@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 
 // The E2E API serves recorded responses: lichess game HqjDTU4A (DrNykterstein), chess.com "hikaru".
 

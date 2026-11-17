@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 
 // The browser turns the request for the microphone down, as when the user blocked it. Done in
 // the page rather than left to the browser: how a browser refuses without a prompt differs

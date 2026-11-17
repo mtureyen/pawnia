@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 import { boardDriver } from './board'
 import { FAKE_MICROPHONE, moves, say, state, storeVoiceSettings } from './voiceScript'
 

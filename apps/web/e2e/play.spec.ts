@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 import { boardDriver } from './board'
 
 test.beforeEach(async ({ page }) => {
