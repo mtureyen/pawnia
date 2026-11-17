@@ -42,6 +42,7 @@ export { sayMove } from './domain/sayMove'
 export {
   legalSpokenMoves,
   readSpokenMove,
+  readSpokenSquare,
   SPOKEN_COMMANDS,
   type SpokenCommand,
   type SpokenMove,
