@@ -22,7 +22,14 @@ import './Voice.css'
  * there is one, and a popover to switch between push to talk and always listening (the rest is
  * in Settings → Voice). Voice input stays off, and downloads nothing, until it is turned on.
  */
-export function VoicePanel({ voice }: { voice: VoiceView }) {
+export function VoicePanel({
+  voice,
+  what = 'a move',
+}: {
+  voice: VoiceView
+  /** What the page wants said, for the hint by the mic ("Hold Space and say a square"). */
+  what?: string
+}) {
   const { session } = voice
   const [settingsOpen, setSettingsOpen] = useState(false)
   const ready = session.engine.kind === 'ready'
@@ -34,7 +41,7 @@ export function VoicePanel({ voice }: { voice: VoiceView }) {
       <div className="mic-bar">
         <MicButton session={session} />
         <p className="mic-state" data-testid="voice-state">
-          {stateText(session)}
+          {stateText(session, what)}
         </p>
         <button
           type="button"
@@ -163,7 +170,7 @@ function MicButton({ session }: { session: VoiceSnapshot }) {
   )
 }
 
-function stateText(session: VoiceSnapshot): string {
+function stateText(session: VoiceSnapshot, what: string): string {
   const { engine, mic, settings } = session
   switch (engine.kind) {
     case 'off':
@@ -180,7 +187,7 @@ function stateText(session: VoiceSnapshot): string {
   if (mic.kind === 'failed') return 'No microphone'
   if (session.transcribing) return 'Making it out…'
   if (settings.listening === 'push')
-    return session.holding ? 'Listening…' : 'Hold Space and say a move'
+    return session.holding ? 'Listening…' : `Hold Space and say ${what}`
   if (session.muted) return 'Not listening'
   if (session.paused) return 'Paused'
   return session.hearing ? 'Hearing you…' : 'Listening'

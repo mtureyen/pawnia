@@ -1,5 +1,7 @@
 import type { Color, SquareName } from '@pawnia/chess'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useSpokenSquare } from '@/features/voice/useSpokenSquare'
+import { VoicePanel } from '@/features/voice/VoicePanel'
 import { Board, type BoardHighlight } from '@/shared/board/Board'
 import {
   drillKey,
@@ -277,7 +279,8 @@ function Drill({
                     ))}
                   </div>
                   <p className="stats-note">
-                    Or type it: a letter, then a number{typed && <> (typed: {typed}…)</>}.
+                    Or type it: a letter, then a number{typed && <> (typed: {typed}…)</>}. Or say
+                    it.
                   </p>
                 </>
               )
@@ -305,6 +308,12 @@ function Drill({
                 : `It is ${reveal.right}. ${reveal.given} is the red square.`)}
           </p>
         </div>
+        {mode === 'name' && (
+          <SpokenSquares
+            onSquare={answer}
+            {...(!naming && { noAnswer: 'No square to name right now.' })}
+          />
+        )}
         {running && (
           <p className="notation-score" role="group" aria-label="Score">
             {timed && (
@@ -317,6 +326,18 @@ function Drill({
       </aside>
     </div>
   )
+}
+
+/** Naming the marked square by saying it; mounted only while squares are named. */
+function SpokenSquares({
+  onSquare,
+  noAnswer,
+}: {
+  onSquare: (square: SquareName) => void
+  noAnswer?: string
+}) {
+  const voice = useSpokenSquare({ onSquare, ...(noAnswer && { noAnswer }) })
+  return <VoicePanel voice={voice} what="a square" />
 }
 
 function Settings({
