@@ -2,6 +2,8 @@ import { createGame, type Move } from '@pawnia/chess'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useServices } from '@/app/servicesContext'
 import { lineText } from '@/features/stats/format'
+import { useVoice } from '@/features/voice/useVoice'
+import { VoicePanel } from '@/features/voice/VoicePanel'
 import { Board, type BoardDrawing } from '@/shared/board/Board'
 import { arrowsWanted, nextStepArrows, rememberArrows } from './arrows'
 import type { Pitfall } from './traps'
@@ -401,6 +403,17 @@ function Play({
     )
   }
 
+  const voice = useVoice({
+    fen: game.fen(),
+    ...(!yourTurn && {
+      noMove: done ? 'The line is done.' : 'Wait for the other side’s move.',
+    }),
+    onMove,
+    commands: {},
+  })
+  // A question about a spoken move outranks the hint: its numbered arrows are what to answer.
+  const drawing = voice.drawing ?? hint
+
   const restart = (nextRun = run + 1) => {
     told.current = false
     judging.current++
@@ -423,7 +436,7 @@ function Play({
           check={game.isCheck()}
           isPromotion={(from, to) => game.isPromotion(from, to)}
           onMove={onMove}
-          {...(hint && { drawing: hint })}
+          {...(drawing && { drawing })}
         />
       </section>
       <aside className="panel training-panel" aria-label="Learn the line">
@@ -455,6 +468,7 @@ function Play({
             </p>
           )}
         </div>
+        <VoicePanel voice={voice} />
         <div className="training-actions">
           {yourTurn && misses > 0 && (
             <button type="button" onClick={() => advance(true)}>

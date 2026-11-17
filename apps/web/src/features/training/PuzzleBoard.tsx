@@ -4,6 +4,8 @@ import { useRef, useState } from 'react'
 import { Markdown } from '@/features/coach/Markdown'
 import { SearchStatus } from '@/features/review/SearchStatus'
 import { useMoveTry } from '@/features/review/useMoveTry'
+import { useVoice } from '@/features/voice/useVoice'
+import { VoicePanel } from '@/features/voice/VoicePanel'
 import type { BoardTry } from '@/features/review/walkthrough'
 import { Board, type BoardDrawing } from '@/shared/board/Board'
 import { useGame } from '@/shared/game/useGame'
@@ -60,6 +62,16 @@ export function PuzzleBoard({
 
   const tried = attempt?.shown
   const done = answer !== undefined
+  const canMove = attempt !== undefined && !tried
+  const voice = useVoice({
+    fen: view.fen,
+    ...(!canMove && {
+      noMove: done ? 'The puzzle is done.' : 'No move to try right now.',
+    }),
+    onMove: (move) => attempt?.onMove(move),
+    commands: {},
+  })
+  const drawing = voice.drawing ?? answer
   return (
     <div className="layout">
       <section className="board-column">
@@ -67,12 +79,12 @@ export function PuzzleBoard({
           fen={tried?.fen ?? view.fen}
           orientation={puzzle.color}
           turnColor={tried ? (view.turn === 'white' ? 'black' : 'white') : view.turn}
-          dests={attempt && !tried ? view.dests : NO_MOVES}
+          dests={canMove ? view.dests : NO_MOVES}
           {...(tried && { lastMove: tried.lastMove })}
           check={tried ? false : view.check}
           isPromotion={(from, to) => game.isPromotion(from, to)}
           onMove={(move) => attempt?.onMove(move)}
-          {...(answer && { drawing: answer })}
+          {...(drawing && { drawing })}
         />
       </section>
       <aside className="panel training-panel" aria-label="Puzzle">
@@ -101,6 +113,7 @@ export function PuzzleBoard({
             </>
           )}
         </div>
+        <VoicePanel voice={voice} />
         <div className="training-actions">
           {!done && search?.status !== 'looking' && (
             <button
