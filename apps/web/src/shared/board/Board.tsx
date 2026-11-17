@@ -42,6 +42,8 @@ export interface BoardProps {
   onSquare?: (square: SquareName) => void
   /** Squares the page colours in, e.g. a trainer's question and its answer. */
   highlights?: BoardHighlight[]
+  /** Blindfold: the pieces are there and move, but aren't shown (squares and arrows still are). */
+  blindfold?: boolean
 }
 
 export interface BoardHighlight {
@@ -213,7 +215,7 @@ export function Board(props: BoardProps) {
   }
 
   return (
-    <div className="board">
+    <div className={props.blindfold ? 'board board-blindfold' : 'board'}>
       <div ref={host} className="board-host" />
       {promotion && (
         <PromotionDialog

@@ -36,6 +36,8 @@ export interface VoiceSettings {
    * default: each time is a request to the coach (with the Claude API, a paid one).
    */
   askCoach: boolean
+  /** Bot games without the pieces shown, until the game is over: play from the moves heard. */
+  blindfold: boolean
 }
 
 export type ListeningMode = 'push' | 'always'
@@ -55,6 +57,7 @@ export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
   listening: 'push',
   microphone: null,
   askCoach: false,
+  blindfold: false,
 }
 
 const SWITCHES = [
@@ -66,6 +69,7 @@ const SWITCHES = [
   'speakMoves',
   'speechModelAccepted',
   'askCoach',
+  'blindfold',
 ] as const
 
 /** Stored settings, with anything unknown (an old or edited value) back at the default. */
