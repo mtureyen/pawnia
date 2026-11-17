@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 import { boardDriver } from './board'
 
 async function startBotGame(page: Page, level: string, side: 'White' | 'Black', clock = 'None') {

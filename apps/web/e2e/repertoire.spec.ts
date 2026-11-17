@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 import { boardDriver } from './board'
 
 test('repertoire: keep a line from the library, review it, and it comes back later', async ({

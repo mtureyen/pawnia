@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 
 // A first visit: no banner closed yet.
 test.use({ storageState: { cookies: [], origins: [] } })

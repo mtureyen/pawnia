@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 
 test('the coach’s providers can be switched on, configured and their keys kept hidden', async ({
   page,

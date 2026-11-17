@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 
 async function squareCenter(page: Page, square: string) {
   const box = (await page.locator('cg-board').boundingBox())!

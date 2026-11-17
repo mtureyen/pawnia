@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test'
 
 test('shows the API as online (web → typed client → proxy → API)', async ({ page }) => {
   await page.goto('/')
@@ -13,4 +13,10 @@ test('has no console errors on load', async ({ page }) => {
   await page.goto('/')
   await page.waitForSelector('cg-board')
   expect(errors).toEqual([])
+})
+
+test('the test browser never talks through the speakers', async ({ page }) => {
+  await page.goto('/')
+  // The silent stand-in of e2e/test.ts, not the browser's own speech synthesis.
+  expect(await page.evaluate(() => window.speechSynthesis instanceof SpeechSynthesis)).toBe(false)
 })

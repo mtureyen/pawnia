@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 
 const GAME = '[White "8sly"]\n[Black "rival"]\n[WhiteElo "790"]\n\n1. e4 e5 2. Nf3 Nc6 *'
 const AFTER_E4 = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1'

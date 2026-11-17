@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 
 const tally = (wins: number, draws: number, losses: number) => {
   const games = wins + draws + losses

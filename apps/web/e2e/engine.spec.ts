@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 import type { AnalysisHandle, AnalysisRequest, EngineProvider } from '@pawnia/analysis'
 
 /**

@@ -1,5 +1,5 @@
 import { sayMove } from '@pawnia/chess'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './test'
 import { boardDriver } from './board'
 import { recordSpeech } from './speech'
 
