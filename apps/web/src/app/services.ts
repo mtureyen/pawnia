@@ -44,6 +44,7 @@ import { RemoteCoach } from '@/adapters/api/remoteCoach'
 import { RemoteReviewQueue } from '@/adapters/api/remoteReviewQueue'
 import { RemoteSettings } from '@/adapters/api/remoteSettings'
 import { RemoteOpeningLibrary } from '@/adapters/api/remoteOpeningLibrary'
+import { RemotePuzzles } from '@/adapters/api/remotePuzzles'
 import { RemoteOpenings } from '@/adapters/api/remoteOpenings'
 import { RemoteRepertoire } from '@/adapters/api/remoteRepertoire'
 import { RemoteStats } from '@/adapters/api/remoteStats'
@@ -112,6 +113,8 @@ export interface Services {
     RemoteOpeningLibrary,
     'list' | 'opening' | 'position' | 'guide' | 'writeGuide' | 'lineNotes' | 'writeLineNotes'
   >
+  /** The puzzle library: lichess' puzzles to solve, by theme and rating. */
+  puzzles: Pick<RemotePuzzles, 'library' | 'next'>
   /** The user's mistakes as puzzles. */
   training: {
     list: RemoteLibrary['training']
@@ -242,6 +245,13 @@ export function createServices({ onGamesChanged = () => {} }: ServiceHooks = {})
         add: (line) => repertoire.add(line),
         remove: (id) => repertoire.remove(id),
         review: (id, passed) => repertoire.review(id, passed),
+      }
+    })(),
+    puzzles: (() => {
+      const puzzles = new RemotePuzzles(api)
+      return {
+        library: () => puzzles.library(),
+        next: (request) => puzzles.next(request),
       }
     })(),
     openingLibrary: (() => {
