@@ -96,6 +96,15 @@ const repertoireRoute = createRoute({
   ),
 })
 
+const puzzlesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/training/puzzles',
+  component: lazyRouteComponent(
+    () => import('@/features/training/puzzles/PuzzlesPage'),
+    'PuzzlesPage',
+  ),
+})
+
 const notationRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/training/notation',
@@ -132,6 +141,7 @@ const routeTree = rootRoute.addChildren([
   openingsRoute,
   libraryRoute,
   repertoireRoute,
+  puzzlesRoute,
   notationRoute,
   statsRoute,
   settingsRoute,

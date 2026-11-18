@@ -1,0 +1,75 @@
+.puzzles-page h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.puzzles-page a {
+  color: var(--accent);
+}
+
+.puzzles-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+}
+
+.puzzles-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.puzzles-page .training-start {
+  align-self: flex-start;
+}
+
+.puzzles-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  margin: 0;
+}
+
+.puzzles-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* The tabs and the bar stand above the board. */
+.puzzle-player {
+  --board-size: min(calc(100vh - 12rem), calc(100vw - 24rem - 3rem), 640px);
+  padding: 0;
+}
+
+.puzzle-turn {
+  margin: 0;
+  font-weight: 600;
+}
+
+.puzzle-themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.puzzle-themes li {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 860px) {
+  .puzzle-player {
+    --board-size: min(calc(100vw - 2rem), 640px);
+  }
+}

@@ -2,8 +2,8 @@ import { Link } from '@tanstack/react-router'
 import { useRepertoire } from './repertoire/progress'
 
 /**
- * The kinds of training: the user's mistakes as puzzles, their openings, openings to study, and
- * reading and writing chess notation.
+ * The kinds of training: the user's mistakes as puzzles, lichess' puzzles, their openings,
+ * openings to study, and reading and writing chess notation.
  */
 export function TrainingTabs() {
   const due = (useRepertoire().data ?? []).filter((line) => line.due).length
@@ -11,6 +11,9 @@ export function TrainingTabs() {
     <nav className="training-tabs" aria-label="Training">
       <Link to="/training" activeOptions={{ exact: true }} activeProps={{ 'aria-current': 'page' }}>
         My mistakes
+      </Link>
+      <Link to="/training/puzzles" activeProps={{ 'aria-current': 'page' }}>
+        Puzzles
       </Link>
       <Link to="/training/openings" search={{}} activeProps={{ 'aria-current': 'page' }}>
         My openings
