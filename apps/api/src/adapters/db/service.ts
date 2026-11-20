@@ -20,6 +20,7 @@ import { PostgresTryStore, type StoredTry } from './tryStore'
 import { PostgresWalkthroughStore, type StoredWalkthrough } from './walkthroughStore'
 import { PostgresGuideStore } from './guideStore'
 import { PostgresRepertoireStore, type StoredRepertoireLine } from './repertoireStore'
+import { PostgresPuzzleStore, type StoredPuzzleAttempt } from './puzzleStore'
 
 interface Stores {
   name: string
@@ -30,6 +31,7 @@ interface Stores {
   walkthroughs: PostgresWalkthroughStore
   guides: PostgresGuideStore
   repertoire: PostgresRepertoireStore
+  puzzles: PostgresPuzzleStore
   training: PostgresTrainingStore
   tries: PostgresTryStore
 }
@@ -96,6 +98,22 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
 
   async findReview(line: GameLine): Promise<StoredReview | undefined> {
     return (await this.connected()).reviews.find(line)
+  }
+
+  async puzzleAttempts(): Promise<StoredPuzzleAttempt[]> {
+    return (await this.connected()).puzzles.attempts()
+  }
+
+  async addPuzzleAttempt(attempt: StoredPuzzleAttempt): Promise<void> {
+    await (await this.connected()).puzzles.addAttempt(attempt)
+  }
+
+  async puzzleProgress(): Promise<Map<string, PuzzleProgress>> {
+    return (await this.connected()).puzzles.progress()
+  }
+
+  async savePuzzleProgress(puzzleId: string, progress: PuzzleProgress): Promise<void> {
+    await (await this.connected()).puzzles.saveProgress(puzzleId, progress)
   }
 
   async repertoireLines(): Promise<StoredRepertoireLine[]> {
@@ -191,6 +209,7 @@ export class DatabaseLibraryService implements LibraryService, GameHistory {
         walkthroughs: new PostgresWalkthroughStore(db),
         guides: new PostgresGuideStore(db),
         repertoire: new PostgresRepertoireStore(db),
+        puzzles: new PostgresPuzzleStore(db),
         training: new PostgresTrainingStore(db),
         tries: new PostgresTryStore(db),
       }))
