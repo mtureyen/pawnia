@@ -28,21 +28,48 @@ const TWO_MATES = {
   themes: ['mateIn1', 'backRankMate', 'oneMove'],
 }
 
-/** The server hands out these puzzles in turn, and keeps what was asked for. */
+/**
+ * A trainer that hands out these puzzles in turn and keeps what it was asked and told: the next
+ * puzzle's wishes, and the attempts (each moving the rating by 10 either way).
+ */
 async function handOut(page: Page, ...puzzles: object[]) {
-  const asked: { themes: string[]; rating: number; exclude: string[] }[] = []
-  await page.route('**/api/v1/puzzles/next', (route) => {
+  const asked: unknown[] = []
+  const attempts: { puzzleId: string; solvedFirstTry: boolean }[] = []
+  let rating = 1000
+  await page.route('**/api/v1/training/puzzles/next', (route) => {
     asked.push(route.request().postDataJSON())
     const puzzle = puzzles[asked.length - 1]
     return puzzle
-      ? route.fulfill({ json: puzzle })
+      ? route.fulfill({ json: { ...puzzle, reason: 'weak' } })
       : route.fulfill({
           status: 404,
           contentType: 'application/problem+json',
           json: { title: 'No puzzle left', status: 404 },
         })
   })
-  return asked
+  await page.route('**/api/v1/training/puzzles/attempts', (route) => {
+    const attempt = route.request().postDataJSON() as (typeof attempts)[number]
+    attempts.push(attempt)
+    const change = attempt.solvedFirstTry ? 10 : -10
+    rating += change
+    return route.fulfill({ json: { rating, change, repeat: false } })
+  })
+  await page.route('**/api/v1/training/puzzles', (route) =>
+    route.fulfill({
+      json: {
+        rating,
+        rated: attempts.length,
+        provisional: true,
+        attempts: attempts.length,
+        solvedFirstTry: attempts.filter((a) => a.solvedFirstTry).length,
+        due: 0,
+        waiting: attempts.filter((a) => !a.solvedFirstTry).length,
+        history: [],
+        themes: [],
+      },
+    }),
+  )
+  return { asked, attempts }
 }
 
 const panel = (page: Page) => page.getByRole('complementary', { name: 'Puzzle' })
@@ -52,7 +79,7 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1000 })
 })
 
-test('puzzles from the library: pick a theme, solve one, the answer shown, the next one', async ({
+test('puzzles at the user’s rating: one solved by showing the answer, kept, the rating moved', async ({
   page,
 }) => {
   await page.goto('/training')
@@ -64,13 +91,20 @@ test('puzzles from the library: pick a theme, solve one, the answer shown, the n
   await expect(
     page.getByText(/puzzles from the lichess puzzle database \(CC0-1\.0\)/),
   ).toBeVisible()
-  // Motifs and mates to pick from, by name.
+  const standing = page.getByRole('status', { name: 'Your puzzles' })
+  await expect(standing).toContainText(/Your puzzle rating: \d+/)
+  // Motifs and mates to pick from, by name; by default the trainer picks.
   const theme = page.getByRole('combobox', { name: 'Theme' })
+  await expect(theme).toHaveValue('')
   await expect(theme.locator('option', { hasText: /^Fork \(\d+\)$/ })).toHaveCount(1)
 
   await page.getByRole('button', { name: 'Solve a puzzle' }).click()
   await expect(panel(page).getByRole('heading')).toHaveText(
     /^Find the best move for (White|Black)$/,
+  )
+  // Why this one: no reviewed games and no misses yet in this database, so any theme.
+  await expect(page.getByRole('status', { name: 'This visit' })).toHaveText(
+    'Any theme, at your rating.',
   )
   // The themes would give it away: not before it's over.
   await expect(panel(page).getByRole('list', { name: 'Themes' })).toHaveCount(0)
@@ -83,23 +117,32 @@ test('puzzles from the library: pick a theme, solve one, the answer shown, the n
     'href',
     /^https:\/\/lichess\.org\/training\/\w+$/,
   )
+  // Shown, it counts as missed: the rating goes down, and the puzzle comes back.
+  await expect(page.getByRole('status', { name: 'Your puzzle rating' })).toHaveText(
+    /^Rating \d+ −\d+$/,
+  )
   await expect(page.getByRole('status', { name: 'This visit' })).toHaveText(
     '0 of 1 solved at the first try',
   )
   await panel(page).getByRole('button', { name: 'Next puzzle' }).click()
   await expect(panel(page).getByRole('heading')).toHaveText(/^Find the best move for/)
+  await page.getByRole('button', { name: '← Puzzles' }).click()
+  await expect(standing).toContainText(/coming back later/)
 })
 
 test('a wrong move costs the first try; the opponent answers; the line solves it', async ({
   page,
 }) => {
-  const asked = await handOut(page, QUEEN_TRAP)
+  const { asked, attempts } = await handOut(page, QUEEN_TRAP)
   await page.goto('/training/puzzles')
-  await page.getByRole('combobox', { name: 'Rating' }).selectOption('1600')
   await page.getByRole('combobox', { name: 'Theme' }).selectOption('fork')
+  await expect(page.getByText('New fork puzzles at your rating.')).toBeVisible()
   await page.getByRole('button', { name: 'Solve a puzzle' }).click()
   await expect(panel(page).getByRole('heading')).toHaveText('Find the best move for Black')
-  expect(asked).toEqual([{ themes: ['fork'], rating: 1600, exclude: [] }])
+  expect(asked).toEqual([{ themes: ['fork'] }])
+  await expect(page.getByRole('status', { name: 'This visit' })).toHaveText(
+    'From a theme behind your recent mistakes.',
+  )
 
   const board = await boardDriver(page)
   board.setFlipped(true)
@@ -120,17 +163,24 @@ test('a wrong move costs the first try; the opponent answers; the line solves it
   await expect(page.getByRole('status', { name: 'This visit' })).toHaveText(
     '0 of 1 solved at the first try',
   )
+  // Kept as missed (a wrong move first): the rating went down.
+  await expect(page.getByRole('status', { name: 'Your puzzle rating' })).toHaveText(
+    'Rating 990 −10',
+  )
+  expect(attempts).toEqual([{ puzzleId: '0000D', solvedFirstTry: false }])
 
-  // None left: said so, and the solved one was left out.
+  // None left: said so.
   await panel(page).getByRole('button', { name: 'Next puzzle' }).click()
-  await expect(page.getByText('No puzzle left with this theme.')).toBeVisible()
-  expect(asked[1]).toEqual({ themes: ['fork'], rating: 1600, exclude: ['0000D'] })
+  await expect(page.getByText('No new puzzle left with this theme.')).toBeVisible()
+  await expect(page.getByRole('status', { name: 'Your puzzles' })).toContainText(
+    'Your puzzle rating: 990',
+  )
 })
 
 test('any mate solves it, as on lichess; a hint marks the piece and costs the first try', async ({
   page,
 }) => {
-  await handOut(page, TWO_MATES, TWO_MATES)
+  const { attempts } = await handOut(page, TWO_MATES, TWO_MATES)
   await page.goto('/training/puzzles')
   await page.getByRole('button', { name: 'Solve a puzzle' }).click()
   const board = await boardDriver(page)
@@ -141,6 +191,9 @@ test('any mate solves it, as on lichess; a hint marks the piece and costs the fi
   )
   await expect(page.getByRole('status', { name: 'This visit' })).toHaveText(
     '1 of 1 solved at the first try',
+  )
+  await expect(page.getByRole('status', { name: 'Your puzzle rating' })).toHaveText(
+    'Rating 1010 +10',
   )
 
   await panel(page).getByRole('button', { name: 'Next puzzle' }).click()
@@ -153,6 +206,7 @@ test('any mate solves it, as on lichess; a hint marks the piece and costs the fi
   await expect(page.getByRole('status', { name: 'This visit' })).toHaveText(
     '1 of 2 solved at the first try',
   )
+  expect(attempts.map((a) => a.solvedFirstTry)).toEqual([true, false])
 })
 
 test('without a puzzle set on the server, the page says how to fetch one', async ({ page }) => {
