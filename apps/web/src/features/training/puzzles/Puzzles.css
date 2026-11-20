@@ -73,3 +73,20 @@
     --board-size: min(calc(100vw - 2rem), 640px);
   }
 }
+
+.puzzles-standing {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.puzzles-rating {
+  font-weight: 600;
+}
+
+.puzzles-up {
+  color: var(--accent);
+}
+
+.puzzles-down {
+  color: var(--danger);
+}
