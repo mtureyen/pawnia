@@ -40,6 +40,7 @@ import { ReviewQueueBusyError, type ReviewQueueService } from './adapters/review
 import { FileOpeningLibrary, libraryFile } from './adapters/library/openingLibrary'
 import { OpeningGuides } from './adapters/library/openingGuides'
 import { FilePuzzleLibrary } from './adapters/puzzles/filePuzzleLibrary'
+import { StoredPuzzleTraining } from './adapters/puzzles/storedPuzzleTraining'
 import { StoredRepertoire } from './adapters/repertoire/storedRepertoire'
 import { OpeningPractice } from './adapters/openings/practice'
 import { StoredOpenings } from './adapters/openings/storedOpenings'
@@ -199,6 +200,8 @@ const puzzles = new FilePuzzleLibrary(
   fileURLToPath(new URL('../data/puzzle-sample.json', import.meta.url)),
   () => 0,
 )
+/** Training on that sample, kept in the test's database; picks without chance. */
+const puzzleTraining = new StoredPuzzleTraining(library, puzzles, { random: () => 0.99 })
 const repertoire = new StoredRepertoire(library, () => new Date('2026-11-11T12:00:00.000Z'))
 
 /** Practice against the small book, with a reviewer that calls every move off theory a mistake. */
@@ -259,6 +262,7 @@ const app = createApp({
   openingLibrary,
   guides,
   puzzles,
+  puzzleTraining,
   repertoire,
 })
 
@@ -324,7 +328,11 @@ describe('api', () => {
       '/training/openings',
       '/training/openings/practice',
       '/training/openings/{color}',
+      '/training/puzzles',
+      '/training/puzzles/attempts',
+      '/training/puzzles/next',
       '/training/results',
+      '/training/themes',
     ])
   })
 
@@ -644,6 +652,7 @@ describe('library routes', () => {
       openingLibrary,
       guides,
       puzzles,
+      puzzleTraining,
       repertoire,
       coach: { agents: () => [] },
       walkthroughs,
@@ -906,6 +915,7 @@ describe('player summary routes', () => {
       openingLibrary,
       guides,
       puzzles,
+      puzzleTraining,
       repertoire,
     })
     return { summaryApp: target, requests: scripted.requests }
@@ -1059,6 +1069,93 @@ describe('opening library routes', () => {
   })
 })
 
+describe('puzzle training routes', () => {
+  const post = (path: string, body: unknown) =>
+    app.request(`/api/v1/training/puzzles${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  const summary = async () =>
+    (await (await app.request('/api/v1/training/puzzles')).json()) as {
+      rating: number
+      rated: number
+      provisional: boolean
+      attempts: number
+      waiting: number
+      history: { rating: number }[]
+      themes: { theme: string; attempts: number; solved: number }[]
+    }
+
+  it('hands out puzzles at the user’s rating, keeps attempts, moves the rating, brings misses back', async () => {
+    const start = await summary()
+    const first = (await (await post('/next', {})).json()) as {
+      id: string
+      reason: string
+      rating: number
+      themes: string[]
+    }
+    expect(first.reason).toBe('mixed')
+
+    const res = await post('/attempts', { puzzleId: first.id, solvedFirstTry: false })
+    expect(res.status).toBe(200)
+    const result = (await res.json()) as {
+      rating: number
+      change: number
+      repeat: boolean
+      dueAt?: string
+    }
+    expect(result.change).toBeLessThan(0)
+    expect(result.rating).toBe(start.rating + result.change)
+    expect(result.repeat).toBe(false)
+    // Missed: back in a day.
+    expect(Date.parse(result.dueAt!) - Date.now()).toBeGreaterThan(23 * 3_600_000)
+
+    const after = await summary()
+    expect(after).toMatchObject({
+      rating: result.rating,
+      rated: start.rated + 1,
+      provisional: true,
+      attempts: start.attempts + 1,
+      waiting: start.waiting + 1,
+    })
+    expect(after.history.at(-1)).toMatchObject({ rating: result.rating })
+    expect(after.themes.map((t) => t.theme)).toEqual(expect.arrayContaining(first.themes))
+
+    // Tried once, it isn't handed out as a new puzzle again.
+    const second = (await (await post('/next', {})).json()) as { id: string }
+    expect(second.id).not.toBe(first.id)
+  })
+
+  it('hands out a puzzle of the themes asked for', async () => {
+    const res = await post('/next', { themes: ['fork'] })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      reason: 'chosen',
+      themes: expect.arrayContaining(['fork']),
+    })
+  })
+
+  it('reads the weak themes from the user’s last reviewed games', async () => {
+    const res = await app.request('/api/v1/training/themes')
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      games: number
+      reviewed: number
+      mistakes: number
+      themes: unknown[]
+    }
+    expect(body.reviewed).toBeLessThanOrEqual(body.games)
+    expect(Array.isArray(body.themes)).toBe(true)
+  })
+
+  it('rejects attempts at unknown puzzles and requests that make no sense', async () => {
+    expect((await post('/attempts', { puzzleId: 'zzzzz', solvedFirstTry: true })).status).toBe(404)
+    expect((await post('/attempts', { puzzleId: '0000D' })).status).toBe(400)
+    expect((await post('/next', { themes: ['fork!'] })).status).toBe(400)
+  })
+})
+
 describe('puzzle routes', () => {
   const next = (body: unknown, target = app) =>
     target.request('/api/v1/puzzles/next', {
@@ -1175,6 +1272,7 @@ describe('puzzle routes', () => {
       openingLibrary,
       guides,
       puzzles: new FilePuzzleLibrary(path),
+      puzzleTraining,
       repertoire,
     })
     expect((await unfetched.request('/api/v1/health')).status).toBe(200)
@@ -1224,6 +1322,7 @@ describe('opening guide routes', () => {
       openingLibrary,
       guides,
       puzzles,
+      puzzleTraining,
       repertoire,
     })
     return { guideApp: target, requests }
@@ -1542,6 +1641,7 @@ describe('coach routes', () => {
         openingLibrary,
         guides,
         puzzles,
+        puzzleTraining,
         repertoire,
         walkthroughs,
         coach: {
@@ -1716,6 +1816,7 @@ describe('local host names only', () => {
       openingLibrary,
       guides,
       puzzles,
+      puzzleTraining,
       repertoire,
       coach: { agents: () => [] },
       walkthroughs,
@@ -1749,6 +1850,7 @@ describe('local host names only', () => {
       openingLibrary,
       guides,
       puzzles,
+      puzzleTraining,
       repertoire,
       coach: { agents: () => [] },
       walkthroughs,
