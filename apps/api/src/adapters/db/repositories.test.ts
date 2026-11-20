@@ -9,6 +9,7 @@ import { PostgresGameRepository } from './gameRepository'
 import { PostgresReviewRepository } from './reviewRepository'
 import { PostgresTrainingStore, progressKey } from './trainingStore'
 import { PostgresGuideStore } from './guideStore'
+import { PostgresPuzzleStore } from './puzzleStore'
 import { PostgresRepertoireStore } from './repertoireStore'
 import { PostgresTryStore } from './tryStore'
 import { PostgresWalkthroughStore } from './walkthroughStore'
@@ -24,7 +25,7 @@ beforeAll(async () => {
 async function fresh() {
   const { db } = await shared
   await db.execute(
-    sql`truncate games, reviews, review_moves, walkthroughs, training_progress, coach_tries, opening_guides, opening_line_notes, repertoire_lines`,
+    sql`truncate games, reviews, review_moves, walkthroughs, training_progress, coach_tries, opening_guides, opening_line_notes, repertoire_lines, puzzle_attempts, puzzle_progress`,
   )
   return db
 }
@@ -143,6 +144,42 @@ describe('PostgresWalkthroughStore', () => {
 
     await db.execute(sql`truncate reviews cascade`)
     expect(await store.find(stored.line, 'white')).toBeUndefined()
+  })
+})
+
+describe('PostgresPuzzleStore', () => {
+  it('keeps the attempts in order, and each puzzle’s progress', async () => {
+    const store = new PostgresPuzzleStore(await fresh())
+    const attempt = {
+      puzzleId: '0000D',
+      solvedFirstTry: false,
+      repeat: false,
+      puzzleRating: 1500,
+      ratingBefore: 1000,
+      ratingAfter: 998,
+      themes: ['fork', 'short'],
+    }
+    await store.addAttempt({ ...attempt, id: 'b', at: '2026-11-20T10:00:00.000Z' })
+    await store.addAttempt({
+      ...attempt,
+      id: 'a',
+      at: '2026-11-19T10:00:00.000Z',
+      themes: [],
+    })
+    expect(await store.attempts()).toEqual([
+      { ...attempt, id: 'a', at: '2026-11-19T10:00:00.000Z', themes: [] },
+      { ...attempt, id: 'b', at: '2026-11-20T10:00:00.000Z' },
+    ])
+
+    await store.saveProgress('0000D', { misses: 1, dueAt: '2026-11-21T10:00:00.000Z' })
+    await store.saveProgress('00008', { misses: 0 })
+    await store.saveProgress('0000D', { misses: 2, dueAt: '2026-11-24T10:00:00.000Z' })
+    expect(await store.progress()).toEqual(
+      new Map([
+        ['00008', { misses: 0 }],
+        ['0000D', { misses: 2, dueAt: '2026-11-24T10:00:00.000Z' }],
+      ]),
+    )
   })
 })
 

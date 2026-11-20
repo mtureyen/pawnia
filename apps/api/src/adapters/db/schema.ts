@@ -194,3 +194,34 @@ export const repertoireLines = pgTable(
   },
   (t) => [uniqueIndex('repertoire_lines_side_moves').on(t.side, t.moves)],
 )
+
+/**
+ * Every attempt at a puzzle of the library, in order. The rating is the user's puzzle rating
+ * before and after it (the same on a repeat: repeats never move it).
+ */
+export const puzzleAttempts = pgTable(
+  'puzzle_attempts',
+  {
+    id: text('id').primaryKey(),
+    /** lichess' id of the puzzle. */
+    puzzleId: text('puzzle_id').notNull(),
+    at: timestamp('at', { withTimezone: true }).notNull(),
+    solvedFirstTry: boolean('solved_first_try').notNull(),
+    /** Missed before and handed out again. */
+    repeat: boolean('repeat').notNull(),
+    puzzleRating: integer('puzzle_rating').notNull(),
+    ratingBefore: integer('rating_before').notNull(),
+    ratingAfter: integer('rating_after').notNull(),
+    /** lichess' themes of the puzzle, space-separated. */
+    themes: text('themes').notNull(),
+  },
+  (t) => [index('puzzle_attempts_at').on(t.at)],
+)
+
+/** Where each puzzle tried stands: missed ones come back after 1, 3 and then every 7 days. */
+export const puzzleProgress = pgTable('puzzle_progress', {
+  puzzleId: text('puzzle_id').primaryKey(),
+  misses: integer('misses').notNull(),
+  /** When it comes back; null once it was solved at the first try. */
+  dueAt: timestamp('due_at', { withTimezone: true }),
+})

@@ -64,6 +64,13 @@
       "when": 1794514198595,
       "tag": "0008_line_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795186662880,
+      "tag": "0009_puzzle_attempts",
+      "breakpoints": true
     }
   ]
 }
