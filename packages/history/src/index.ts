@@ -119,3 +119,15 @@ export {
   type ThemeExample,
   type ThemeTally,
 } from './domain/mistakeThemes'
+export {
+  pickNext,
+  PROVISIONAL_ATTEMPTS,
+  ratingAfter,
+  REPEAT_SHARE,
+  START_PUZZLE_RATING,
+  WEAK_SHARE,
+  weakThemes,
+  type PuzzlePick,
+  type PuzzleRating,
+  type WeakTheme,
+} from './domain/puzzleTraining'
